@@ -7,6 +7,7 @@ import '../constants.dart';
 import '../models/airport.dart';
 import '../models/frequency.dart';
 import '../providers/app_provider.dart';
+import '../services/frequency_notification_service.dart';
 import '../widgets/frequency_card.dart';
 import '../widgets/signal_reception_card.dart';
 
@@ -20,6 +21,7 @@ class AirportDetailScreen extends StatefulWidget {
 
 class _AirportDetailScreenState extends State<AirportDetailScreen> {
   bool _isFav = false;
+  bool _isPinned = false;
   List<Frequency> _frequencies = [];
   bool _loadingFreqs = true;
 
@@ -34,13 +36,22 @@ class _AirportDetailScreenState extends State<AirportDetailScreen> {
     final results = await Future.wait([
       provider.isFavourite(widget.airport.ident),
       provider.getFrequencies(widget.airport.id),
+      FrequencyNotificationService.instance.selectedIdent,
     ]);
     if (mounted) {
       setState(() {
         _isFav = results[0] as bool;
         _frequencies = results[1] as List<Frequency>;
+        _isPinned = (results[2] as String?) == widget.airport.ident &&
+            true; // will be confirmed by isEnabled check below
         _loadingFreqs = false;
       });
+    }
+    // Confirm enabled flag (separate async call)
+    final enabled = await FrequencyNotificationService.instance.isEnabled;
+    final ident   = await FrequencyNotificationService.instance.selectedIdent;
+    if (mounted) {
+      setState(() => _isPinned = enabled && ident == widget.airport.ident);
     }
   }
 
@@ -62,6 +73,34 @@ class _AirportDetailScreenState extends State<AirportDetailScreen> {
       }
     }
     if (mounted) setState(() {});
+  }
+
+  Future<void> _togglePin() async {
+    final svc = FrequencyNotificationService.instance;
+    if (_isPinned) {
+      await svc.disable();
+      if (mounted) {
+        setState(() => _isPinned = false);
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Frequency notification removed'),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: kCard,
+          duration: Duration(seconds: 2),
+        ));
+      }
+    } else {
+      await svc.enable(widget.airport.ident);
+      if (mounted) {
+        setState(() => _isPinned = true);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(
+              '${widget.airport.name} frequencies pinned to notifications'),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: kCard,
+          duration: const Duration(seconds: 2),
+        ));
+      }
+    }
   }
 
   Future<void> _toggleFavourite() async {
@@ -125,6 +164,23 @@ class _AirportDetailScreenState extends State<AirportDetailScreen> {
         ],
       ),
       actions: [
+        // Pin frequencies to notification shade
+        IconButton(
+          icon: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 200),
+            child: Icon(
+              _isPinned
+                  ? Icons.notifications_active_rounded
+                  : Icons.notifications_none_rounded,
+              key: ValueKey(_isPinned),
+              color: _isPinned ? kAccent : kTextSecondary,
+            ),
+          ),
+          tooltip: _isPinned
+              ? 'Remove frequencies from notifications'
+              : 'Pin frequencies to notification shade',
+          onPressed: _togglePin,
+        ),
         Consumer<AppProvider>(
           builder: (context, provider, _) {
             final isHome = provider.isHome(widget.airport.ident);
