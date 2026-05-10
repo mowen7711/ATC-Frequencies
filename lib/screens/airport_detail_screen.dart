@@ -130,23 +130,24 @@ class _AirportDetailScreenState extends State<AirportDetailScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 if (airport.hasCoordinates) _MapSection(airport: airport),
-                _InfoSection(airport: airport),
-                const SizedBox(height: 8),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
-                  child: SignalReceptionCard(airport: airport),
-                ),
-                const SizedBox(height: 8),
-                if (_runways.isNotEmpty || !_loadingFreqs)
-                  _RunwaysSection(
-                    runways: _runways,
-                    navaids: _navaids,
-                    loading: _loadingFreqs,
-                  ),
-                const SizedBox(height: 8),
+                // ATC frequencies first — primary use-case
                 _FrequenciesSection(
                   frequencies: _frequencies,
                   loading: _loadingFreqs,
+                ),
+                const SizedBox(height: 16),
+                // Combined airport info + runways + navaids
+                _AirportInfoSection(
+                  airport: airport,
+                  runways: _runways,
+                  navaids: _navaids,
+                  loading: _loadingFreqs,
+                ),
+                const SizedBox(height: 16),
+                // Signal reception at the bottom — secondary tool
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+                  child: SignalReceptionCard(airport: airport),
                 ),
                 const SizedBox(height: 40),
               ],
@@ -280,53 +281,143 @@ class _MapSection extends StatelessWidget {
   }
 }
 
-// ── Info Section ──────────────────────────────────────────────────────────────
+// ── Combined Airport Info + Runways + Navaids ─────────────────────────────────
 
-class _InfoSection extends StatelessWidget {
-  const _InfoSection({required this.airport});
+class _AirportInfoSection extends StatelessWidget {
+  const _AirportInfoSection({
+    required this.airport,
+    required this.runways,
+    required this.navaids,
+    required this.loading,
+  });
   final Airport airport;
+  final List<Runway> runways;
+  final List<Navaid> navaids;
+  final bool loading;
 
   @override
   Widget build(BuildContext context) {
+    final ilsNavaids    = navaids.where((n) => n.isIls).toList();
+    final otherNavaids  = navaids.where((n) => !n.isIls).toList();
+
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-      child: Card(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _row(Icons.airplanemode_active_rounded,
-                  kAirportTypeLabels[airport.type] ?? airport.type),
-              if (airport.municipality.isNotEmpty || airport.isoCountry.isNotEmpty)
-                _row(Icons.location_on_rounded, airport.locationString),
-              if (airport.elevationFt != null)
-                _row(Icons.terrain_rounded,
-                    '${airport.elevationFt} ft elevation'),
-              if (airport.iataCode.isNotEmpty)
-                _row(Icons.confirmation_number_outlined,
-                    'IATA: ${airport.iataCode}'),
-              _CoordRow(airport: airport),
-            ],
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ── Airport details card ─────────────────────────────────────────
+          Container(
+            decoration: BoxDecoration(
+              color: kCard,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: kBorder, width: 0.5),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Info rows
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(14, 12, 14, 4),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _infoRow(Icons.airplanemode_active_rounded,
+                          kAirportTypeLabels[airport.type] ?? airport.type),
+                      if (airport.municipality.isNotEmpty ||
+                          airport.isoCountry.isNotEmpty)
+                        _infoRow(Icons.location_on_rounded,
+                            airport.locationString),
+                      if (airport.elevationFt != null)
+                        _infoRow(Icons.terrain_rounded,
+                            '${airport.elevationFt} ft  ·  '
+                            '${(airport.elevationFt! * 0.3048).round()} m elevation'),
+                      if (airport.iataCode.isNotEmpty)
+                        _infoRow(Icons.confirmation_number_outlined,
+                            'IATA: ${airport.iataCode}'),
+                    ],
+                  ),
+                ),
+                if (airport.hasCoordinates) _CoordRow(airport: airport),
+                const SizedBox(height: 6),
+
+                // ── Runways sub-section ──────────────────────────────────
+                const Divider(height: 1),
+                _SubHeader('Runways'),
+                if (loading)
+                  const Padding(
+                    padding: EdgeInsets.all(16),
+                    child: Center(child: CircularProgressIndicator(color: kAccent)),
+                  )
+                else if (runways.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.fromLTRB(14, 0, 14, 14),
+                    child: Text('No runway data available.',
+                        style: TextStyle(color: kTextMuted, fontSize: 13)),
+                  )
+                else
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(10, 0, 10, 10),
+                    child: Column(
+                      children: runways
+                          .map((rwy) => Padding(
+                                padding: const EdgeInsets.only(bottom: 8),
+                                child: RunwayCard(runway: rwy, navaids: ilsNavaids),
+                              ))
+                          .toList(),
+                    ),
+                  ),
+
+                // ── Navigation Aids sub-section ──────────────────────────
+                if (!loading && otherNavaids.isNotEmpty) ...[
+                  const Divider(height: 1),
+                  _SubHeader('Navigation Aids'),
+                  for (var i = 0; i < otherNavaids.length; i++) ...[
+                    if (i > 0) const Divider(height: 1, indent: 14, endIndent: 14),
+                    _NavaidRow(navaid: otherNavaids[i]),
+                  ],
+                  const SizedBox(height: 4),
+                ],
+              ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
 
-  Widget _row(IconData icon, String text) {
+  Widget _infoRow(IconData icon, String text) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Row(
         children: [
-          Icon(icon, size: 17, color: kAccent),
+          Icon(icon, size: 16, color: kAccent),
           const SizedBox(width: 10),
           Expanded(
             child: Text(text,
-                style:
-                    const TextStyle(color: kTextPrimary, fontSize: 14)),
+                style: const TextStyle(color: kTextPrimary, fontSize: 13)),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _SubHeader extends StatelessWidget {
+  const _SubHeader(this.title);
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(14, 10, 14, 8),
+      child: Text(
+        title.toUpperCase(),
+        style: const TextStyle(
+          color: kAccent,
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 1.1,
+        ),
       ),
     );
   }
@@ -352,108 +443,21 @@ class _CoordRow extends StatelessWidget {
           ),
         );
       },
-      borderRadius: BorderRadius.circular(6),
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 2),
+        padding: const EdgeInsets.fromLTRB(14, 0, 14, 8),
         child: Row(
           children: [
-            const Icon(Icons.my_location_rounded, size: 17, color: kAccent),
+            const Icon(Icons.my_location_rounded, size: 16, color: kAccent),
             const SizedBox(width: 10),
             Text(coord,
                 style: const TextStyle(
-                    color: kTextPrimary, fontSize: 14, fontFamily: 'monospace')),
+                    color: kTextSecondary,
+                    fontSize: 13,
+                    fontFamily: 'monospace')),
             const SizedBox(width: 8),
-            const Icon(Icons.copy_rounded, size: 13, color: kTextMuted),
+            const Icon(Icons.copy_rounded, size: 12, color: kTextMuted),
           ],
         ),
-      ),
-    );
-  }
-}
-
-// ── Runways Section ───────────────────────────────────────────────────────────
-
-class _RunwaysSection extends StatelessWidget {
-  const _RunwaysSection(
-      {required this.runways, required this.navaids, required this.loading});
-  final List<Runway> runways;
-  final List<Navaid> navaids;
-  final bool loading;
-
-  @override
-  Widget build(BuildContext context) {
-    // Separate ILS navaids; the rest go in a "Navaids" sub-section
-    final ilsNavaids = navaids.where((n) => n.isIls).toList();
-    final otherNavaids =
-        navaids.where((n) => !n.isIls).toList();
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text('Runways',
-              style: TextStyle(
-                  color: kTextPrimary,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700)),
-          const SizedBox(height: 12),
-          if (loading)
-            const Center(child: CircularProgressIndicator(color: kAccent))
-          else if (runways.isEmpty)
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: kCard,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: kBorder, width: 0.5),
-              ),
-              child: const Row(
-                children: [
-                  Icon(Icons.info_outline_rounded, color: kTextMuted, size: 18),
-                  SizedBox(width: 10),
-                  Expanded(
-                    child: Text('No runway data available.',
-                        style: TextStyle(color: kTextSecondary, fontSize: 13)),
-                  ),
-                ],
-              ),
-            )
-          else
-            ...runways.map((rwy) => Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
-                  child: RunwayCard(
-                    runway: rwy,
-                    navaids: ilsNavaids,
-                  ),
-                )),
-
-          // ── Other navaids (VOR, NDB, TACAN…) ──────────────────────────
-          if (!loading && otherNavaids.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            const Text('Navigation Aids',
-                style: TextStyle(
-                    color: kTextPrimary,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700)),
-            const SizedBox(height: 12),
-            Container(
-              decoration: BoxDecoration(
-                color: kCard,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: kBorder, width: 0.5),
-              ),
-              child: Column(
-                children: [
-                  for (var i = 0; i < otherNavaids.length; i++) ...[
-                    if (i > 0) const Divider(height: 1),
-                    _NavaidRow(navaid: otherNavaids[i]),
-                  ],
-                ],
-              ),
-            ),
-          ],
-        ],
       ),
     );
   }
@@ -537,7 +541,7 @@ class _FrequenciesSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
