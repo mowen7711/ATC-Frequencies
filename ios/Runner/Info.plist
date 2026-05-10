@@ -44,6 +44,12 @@
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<false/>
 
+	<!-- Bluetooth permissions (flutter_blue_plus — scanner control) -->
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>ATC Frequencies uses Bluetooth to connect to and control compatible Icom radio scanners.</string>
+	<key>NSBluetoothPeripheralUsageDescription</key>
+	<string>ATC Frequencies uses Bluetooth to connect to and control compatible Icom radio scanners.</string>
+
 	<!-- Location permissions -->
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>ATC Frequencies uses your location to show airports near you.</string>

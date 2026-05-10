@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../constants.dart';
 import '../providers/app_provider.dart';
 import '../services/background_service.dart';
+import 'bluetooth_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -193,6 +194,52 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ],
             ),
+          ),
+
+          // ── Scanner control ───────────────────────────────────────────
+          _SectionHeader('Scanner Control'),
+          _Card(
+            child: InkWell(
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const BluetoothScreen()),
+              ),
+              borderRadius: BorderRadius.circular(12),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 2),
+                child: Row(
+                  children: [
+                    const Icon(Icons.bluetooth_rounded, color: kTextMuted, size: 18),
+                    const SizedBox(width: 12),
+                    const Expanded(
+                      child: Text('Icom BLE Radio Control',
+                          style: TextStyle(color: kTextPrimary, fontSize: 14)),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFF7043).withAlpha(30),
+                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(color: const Color(0xFFFF7043).withAlpha(120)),
+                      ),
+                      child: const Text('BETA',
+                          style: TextStyle(
+                              color: Color(0xFFFF7043),
+                              fontSize: 10,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 0.8)),
+                    ),
+                    const SizedBox(width: 8),
+                    const Icon(Icons.chevron_right_rounded, color: kTextMuted, size: 18),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          _InfoTile(
+            icon: Icons.info_outline_rounded,
+            text: 'Tune your Icom radio directly from the app via Bluetooth Low Energy. '
+                'Compatible with IC-R15, IC-R30, IC-705, IC-9700 and other BLE-capable Icom radios.',
           ),
 
           // ── About ─────────────────────────────────────────────────────
