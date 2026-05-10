@@ -1,0 +1,109 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <radialGradient id="bgGrad" cx="50%" cy="40%" r="60%">
+      <stop offset="0%" stop-color="#152038"/>
+      <stop offset="100%" stop-color="#0B1120"/>
+    </radialGradient>
+    <radialGradient id="planeGrad" cx="50%" cy="30%" r="70%">
+      <stop offset="0%" stop-color="#FFC926"/>
+      <stop offset="100%" stop-color="#E8A000"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1024" height="1024" fill="url(#bgGrad)"/>
+
+  <!-- Subtle signal arcs behind the plane -->
+  <path d="M 180 620 A 360 360 0 0 1 844 620"
+        stroke="#FFB300" stroke-width="22" fill="none"
+        stroke-opacity="0.12" stroke-linecap="round"/>
+  <path d="M 264 620 A 268 268 0 0 1 760 620"
+        stroke="#FFB300" stroke-width="22" fill="none"
+        stroke-opacity="0.22" stroke-linecap="round"/>
+  <path d="M 350 620 A 178 178 0 0 1 674 620"
+        stroke="#FFB300" stroke-width="22" fill="none"
+        stroke-opacity="0.36" stroke-linecap="round"/>
+
+  <!-- ── Fuselage — smooth airliner profile, nose up ── -->
+  <path d="
+    M 512 148
+    C 522 148, 544 175, 552 228
+    C 560 278, 563 338, 563 405
+    C 563 478, 561 558, 557 635
+    C 553 700, 545 756, 534 808
+    C 526 842, 519 868, 512 882
+    C 505 868, 498 842, 490 808
+    C 479 756, 471 700, 467 635
+    C 463 558, 461 478, 461 405
+    C 461 338, 464 278, 472 228
+    C 480 175, 502 148, 512 148 Z
+  " fill="url(#planeGrad)"/>
+
+  <!-- ── Right wing — swept commercial jet shape ── -->
+  <path d="
+    M 558 398
+    C 620 402, 730 432, 878 508
+    L 866 562
+    C 780 532, 672 506, 562 468
+    C 562 468, 560 460, 558 445 Z
+  " fill="url(#planeGrad)"/>
+
+  <!-- ── Left wing (mirror) ── -->
+  <path d="
+    M 466 398
+    C 404 402, 294 432, 146 508
+    L 158 562
+    C 244 532, 352 506, 462 468
+    C 462 468, 464 460, 466 445 Z
+  " fill="url(#planeGrad)"/>
+
+  <!-- ── Right engine nacelle ── -->
+  <path d="
+    M 774 446 C 796 444, 816 456, 818 480
+    L 818 510 C 816 533, 796 544, 774 542
+    L 744 542 C 722 542, 710 532, 710 510
+    L 710 480 C 710 458, 722 446, 744 446 Z
+  " fill="#CC8500" transform="rotate(19 764 494)"/>
+  <!-- Engine inlet -->
+  <ellipse cx="764" cy="454" rx="14" ry="10"
+           fill="#0B1120" opacity="0.6"
+           transform="rotate(19 764 454)"/>
+
+  <!-- ── Left engine nacelle ── -->
+  <path d="
+    M 250 446 C 272 444, 284 458, 284 480
+    L 284 510 C 284 532, 272 542, 250 542
+    L 220 542 C 198 542, 188 532, 188 510
+    L 188 480 C 188 456, 198 444, 220 446 Z
+  " fill="#CC8500" transform="rotate(-19 236 494)"/>
+  <!-- Engine inlet -->
+  <ellipse cx="262" cy="454" rx="14" ry="10"
+           fill="#0B1120" opacity="0.6"
+           transform="rotate(-19 262 454)"/>
+
+  <!-- ── Right horizontal stabilizer ── -->
+  <path d="
+    M 552 802
+    C 590 804, 660 816, 710 836
+    L 702 860
+    C 655 844, 586 834, 552 832 Z
+  " fill="url(#planeGrad)"/>
+
+  <!-- ── Left horizontal stabilizer ── -->
+  <path d="
+    M 472 802
+    C 434 804, 364 816, 314 836
+    L 322 860
+    C 369 844, 438 834, 472 832 Z
+  " fill="url(#planeGrad)"/>
+
+  <!-- ── Cockpit windows ── -->
+  <ellipse cx="512" cy="248" rx="16" ry="22"
+           fill="#0B1120" opacity="0.50"/>
+  <ellipse cx="512" cy="285" rx="13" ry="12"
+           fill="#0B1120" opacity="0.30"/>
+
+  <!-- ── Wing root join highlight (centre line detail) ── -->
+  <line x1="512" y1="390" x2="512" y2="475"
+        stroke="#FFC926" stroke-width="5" stroke-opacity="0.4"/>
+</svg>
