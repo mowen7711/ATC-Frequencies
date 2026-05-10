@@ -130,24 +130,24 @@ class _AirportDetailScreenState extends State<AirportDetailScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 if (airport.hasCoordinates) _MapSection(airport: airport),
-                // ATC frequencies first — primary use-case
+                // ATC frequencies — primary use-case
                 _FrequenciesSection(
                   frequencies: _frequencies,
                   loading: _loadingFreqs,
                 ),
                 const SizedBox(height: 16),
-                // Combined airport info + runways + navaids
+                // Signal reception directly under frequencies
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+                  child: SignalReceptionCard(airport: airport),
+                ),
+                const SizedBox(height: 16),
+                // Airport information at the bottom
                 _AirportInfoSection(
                   airport: airport,
                   runways: _runways,
                   navaids: _navaids,
                   loading: _loadingFreqs,
-                ),
-                const SizedBox(height: 16),
-                // Signal reception at the bottom — secondary tool
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
-                  child: SignalReceptionCard(airport: airport),
                 ),
                 const SizedBox(height: 40),
               ],
@@ -305,6 +305,12 @@ class _AirportInfoSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          const Text('Airport Information',
+              style: TextStyle(
+                  color: kTextPrimary,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700)),
+          const SizedBox(height: 12),
           // ── Airport details card ─────────────────────────────────────────
           Container(
             decoration: BoxDecoration(
