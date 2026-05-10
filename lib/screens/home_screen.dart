@@ -14,6 +14,10 @@ class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key, this.initialTab = 0});
   final int initialTab;
 
+  // Called by the background service notification tap to switch tabs while
+  // the app is already running. Null when HomeScreen is not mounted.
+  static void Function(int tab)? onSwitchTab;
+
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
@@ -25,6 +29,15 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _tab = widget.initialTab;
+    HomeScreen.onSwitchTab = (tab) {
+      if (mounted) setState(() => _tab = tab);
+    };
+  }
+
+  @override
+  void dispose() {
+    HomeScreen.onSwitchTab = null;
+    super.dispose();
   }
 
   static const _tabs = [

@@ -2,6 +2,7 @@ import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../constants.dart';
+import '../screens/home_screen.dart';
 import 'database_service.dart';
 import 'location_service.dart';
 
@@ -70,8 +71,10 @@ class NearbyAirportsTaskHandler extends TaskHandler {
 
   @override
   void onNotificationPressed() {
-    // Bring app to foreground and open the Nearby tab
+    // launchApp brings the app to the foreground on cold start.
+    // sendDataToMain switches the tab when the app is already running.
     FlutterForegroundTask.launchApp('/nearby');
+    FlutterForegroundTask.sendDataToMain('openNearby');
   }
 }
 
@@ -81,6 +84,13 @@ class BackgroundService {
   BackgroundService._();
 
   static void init() {
+    // Handle data sent from the background isolate (e.g. notification tap)
+    FlutterForegroundTask.addTaskDataCallback((data) {
+      if (data == 'openNearby') {
+        HomeScreen.onSwitchTab?.call(1);
+      }
+    });
+
     FlutterForegroundTask.init(
       androidNotificationOptions: AndroidNotificationOptions(
         channelId: 'atc_nearby_airports',
