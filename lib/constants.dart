@@ -5,6 +5,10 @@ const String kAirportsUrl =
     'https://davidmegginson.github.io/ourairports-data/airports.csv';
 const String kFrequenciesUrl =
     'https://davidmegginson.github.io/ourairports-data/airport-frequencies.csv';
+const String kRunwaysUrl =
+    'https://davidmegginson.github.io/ourairports-data/runways.csv';
+const String kNavaidsUrl =
+    'https://davidmegginson.github.io/ourairports-data/navaids.csv';
 
 const int kUpdateIntervalDays = 7;
 

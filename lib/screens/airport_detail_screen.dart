@@ -7,8 +7,12 @@ import '../constants.dart';
 import '../models/airport.dart';
 import '../models/frequency.dart';
 import '../providers/app_provider.dart';
+import '../models/navaid.dart';
+import '../models/runway.dart';
+import '../services/database_service.dart';
 import '../services/frequency_notification_service.dart';
 import '../widgets/frequency_card.dart';
+import '../widgets/runway_card.dart';
 import '../widgets/signal_reception_card.dart';
 
 class AirportDetailScreen extends StatefulWidget {
@@ -23,6 +27,8 @@ class _AirportDetailScreenState extends State<AirportDetailScreen> {
   bool _isFav = false;
   bool _isPinned = false;
   List<Frequency> _frequencies = [];
+  List<Runway> _runways = [];
+  List<Navaid> _navaids = [];
   bool _loadingFreqs = true;
 
   @override
@@ -37,13 +43,16 @@ class _AirportDetailScreenState extends State<AirportDetailScreen> {
       provider.isFavourite(widget.airport.ident),
       provider.getFrequencies(widget.airport.id),
       FrequencyNotificationService.instance.selectedIdent,
+      DatabaseService.instance.getRunways(widget.airport.ident),
+      DatabaseService.instance.getNavaids(widget.airport.ident),
     ]);
     if (mounted) {
       setState(() {
         _isFav = results[0] as bool;
         _frequencies = results[1] as List<Frequency>;
-        _isPinned = (results[2] as String?) == widget.airport.ident &&
-            true; // will be confirmed by isEnabled check below
+        _isPinned = (results[2] as String?) == widget.airport.ident;
+        _runways = results[3] as List<Runway>;
+        _navaids = results[4] as List<Navaid>;
         _loadingFreqs = false;
       });
     }
@@ -127,6 +136,13 @@ class _AirportDetailScreenState extends State<AirportDetailScreen> {
                   padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
                   child: SignalReceptionCard(airport: airport),
                 ),
+                const SizedBox(height: 8),
+                if (_runways.isNotEmpty || !_loadingFreqs)
+                  _RunwaysSection(
+                    runways: _runways,
+                    navaids: _navaids,
+                    loading: _loadingFreqs,
+                  ),
                 const SizedBox(height: 8),
                 _FrequenciesSection(
                   frequencies: _frequencies,
@@ -350,6 +366,161 @@ class _CoordRow extends StatelessWidget {
             const Icon(Icons.copy_rounded, size: 13, color: kTextMuted),
           ],
         ),
+      ),
+    );
+  }
+}
+
+// ── Runways Section ───────────────────────────────────────────────────────────
+
+class _RunwaysSection extends StatelessWidget {
+  const _RunwaysSection(
+      {required this.runways, required this.navaids, required this.loading});
+  final List<Runway> runways;
+  final List<Navaid> navaids;
+  final bool loading;
+
+  @override
+  Widget build(BuildContext context) {
+    // Separate ILS navaids; the rest go in a "Navaids" sub-section
+    final ilsNavaids = navaids.where((n) => n.isIls).toList();
+    final otherNavaids =
+        navaids.where((n) => !n.isIls).toList();
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Runways',
+              style: TextStyle(
+                  color: kTextPrimary,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700)),
+          const SizedBox(height: 12),
+          if (loading)
+            const Center(child: CircularProgressIndicator(color: kAccent))
+          else if (runways.isEmpty)
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: kCard,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: kBorder, width: 0.5),
+              ),
+              child: const Row(
+                children: [
+                  Icon(Icons.info_outline_rounded, color: kTextMuted, size: 18),
+                  SizedBox(width: 10),
+                  Expanded(
+                    child: Text('No runway data available.',
+                        style: TextStyle(color: kTextSecondary, fontSize: 13)),
+                  ),
+                ],
+              ),
+            )
+          else
+            ...runways.map((rwy) => Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: RunwayCard(
+                    runway: rwy,
+                    navaids: ilsNavaids,
+                  ),
+                )),
+
+          // ── Other navaids (VOR, NDB, TACAN…) ──────────────────────────
+          if (!loading && otherNavaids.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            const Text('Navigation Aids',
+                style: TextStyle(
+                    color: kTextPrimary,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700)),
+            const SizedBox(height: 12),
+            Container(
+              decoration: BoxDecoration(
+                color: kCard,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: kBorder, width: 0.5),
+              ),
+              child: Column(
+                children: [
+                  for (var i = 0; i < otherNavaids.length; i++) ...[
+                    if (i > 0) const Divider(height: 1),
+                    _NavaidRow(navaid: otherNavaids[i]),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _NavaidRow extends StatelessWidget {
+  const _NavaidRow({required this.navaid});
+  final Navaid navaid;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      child: Row(
+        children: [
+          Container(
+            width: 52,
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+            decoration: BoxDecoration(
+              color: kBackground,
+              borderRadius: BorderRadius.circular(5),
+              border: Border.all(color: kBorder),
+            ),
+            alignment: Alignment.center,
+            child: Text(navaid.typeDisplay,
+                style: const TextStyle(
+                    color: kAccent,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                    fontFamily: 'monospace')),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(navaid.ident,
+                    style: const TextStyle(
+                        color: kTextPrimary,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        fontFamily: 'monospace')),
+                if (navaid.name.isNotEmpty)
+                  Text(navaid.name,
+                      style: const TextStyle(
+                          color: kTextSecondary, fontSize: 11),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis),
+              ],
+            ),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(navaid.frequencyDisplay,
+                  style: const TextStyle(
+                      color: kTextPrimary,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      fontFamily: 'monospace')),
+              if (navaid.dmeFrequencyKhz != null)
+                Text(navaid.dmeFrequencyDisplay,
+                    style: const TextStyle(
+                        color: kTextMuted, fontSize: 11)),
+            ],
+          ),
+        ],
       ),
     );
   }
