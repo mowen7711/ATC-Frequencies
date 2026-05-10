@@ -22,10 +22,15 @@ class NearbyAirportsTaskHandler extends TaskHandler {
   Future<void> onStart(DateTime timestamp, TaskStarter starter) async {
     // DB initialises itself on first access — works in any isolate
     await DatabaseService.instance.db;
+    // Run an immediate update so the notification shows real data straight away
+    // rather than sitting on "Starting…" for the full 5-minute interval.
+    await _update();
   }
 
   @override
-  Future<void> onRepeatEvent(DateTime timestamp) async {
+  Future<void> onRepeatEvent(DateTime timestamp) => _update();
+
+  Future<void> _update() async {
     final location = await LocationService.instance.getCurrentLocation();
     if (!location.isSuccess) {
       await FlutterForegroundTask.updateService(
