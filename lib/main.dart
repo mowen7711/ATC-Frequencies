@@ -6,12 +6,16 @@ import 'providers/app_provider.dart';
 import 'screens/home_screen.dart';
 import 'screens/loading_screen.dart';
 import 'services/background_service.dart';
+import 'services/frequency_notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Initialise background service config (does not start it)
   BackgroundService.init();
+
+  // Initialise frequency display notification (restores if previously enabled)
+  await FrequencyNotificationService.instance.init();
 
   SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
