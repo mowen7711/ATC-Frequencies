@@ -52,7 +52,7 @@ class _SplashScreenState extends State<SplashScreen>
 
   Future<void> _runSequence() async {
     await _introCtrl.forward();
-    await Future.delayed(const Duration(milliseconds: 400));
+    await Future.delayed(const Duration(milliseconds: 900));
     if (!mounted) return;
     _flyCtrl.forward();
     await Future.delayed(const Duration(milliseconds: 200));
@@ -137,6 +137,16 @@ class _SplashScreenState extends State<SplashScreen>
                             fontSize: 18,
                             fontWeight: FontWeight.w600,
                             letterSpacing: 6,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          'Worldwide ATC frequencies, updated weekly',
+                          style: TextStyle(
+                            color: textPrimaryColor.withAlpha(140),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w400,
+                            letterSpacing: 1.2,
                           ),
                         ),
                       ],
