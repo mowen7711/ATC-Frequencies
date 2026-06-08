@@ -59,6 +59,48 @@ class _SettingsScreenState extends State<SettingsScreen> {
   // ── Nearby toggle ──────────────────────────────────────────────────────────
 
   Future<void> _toggleBackground(bool value) async {
+    if (value) {
+      // Google Play policy: show prominent disclosure before requesting
+      // location permission for the background monitor.
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          backgroundColor: context.col.card,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          title: Text('Background Location',
+              style: TextStyle(
+                  color: context.col.textPrimary,
+                  fontWeight: FontWeight.w700)),
+          content: Text(
+            'The nearby airport monitor runs as a foreground service and '
+            'accesses your location in the background to keep the notification '
+            'up to date.\n\n'
+            'Your location is used only on this device — it is never sent '
+            'to any server.',
+            style:
+                TextStyle(color: context.col.textSecondary, height: 1.5),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text('Cancel',
+                  style: TextStyle(color: context.col.textMuted)),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              style: FilledButton.styleFrom(
+                  backgroundColor: context.col.accent,
+                  foregroundColor: Colors.black),
+              child: const Text('Continue',
+                  style: TextStyle(fontWeight: FontWeight.w700)),
+            ),
+          ],
+        ),
+      );
+      if (confirmed != true) return;
+    }
+
     setState(() => _bgLoading = true);
     if (value) {
       await BackgroundService.start();

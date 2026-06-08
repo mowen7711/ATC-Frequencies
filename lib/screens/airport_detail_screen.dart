@@ -262,7 +262,18 @@ class _MapSection extends StatelessWidget {
         children: [
           TileLayer(
             urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-            userAgentPackageName: 'com.atcfreq.app',
+            userAgentPackageName: 'com.atcfreq.atc_freq',
+          ),
+          RichAttributionWidget(
+            attributions: [
+              TextSourceAttribution(
+                '© OpenStreetMap contributors',
+                onTap: () => launchUrl(
+                  Uri.parse('https://www.openstreetmap.org/copyright'),
+                  mode: LaunchMode.externalApplication,
+                ),
+              ),
+            ],
           ),
           MarkerLayer(markers: [
             Marker(

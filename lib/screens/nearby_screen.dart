@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../constants.dart';
 import '../models/airport.dart';
 import '../providers/app_provider.dart';
@@ -219,7 +220,18 @@ class _MapView extends StatelessWidget {
       children: [
         TileLayer(
           urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-          userAgentPackageName: 'com.atcfreq.app',
+          userAgentPackageName: 'com.atcfreq.atc_freq',
+        ),
+        RichAttributionWidget(
+          attributions: [
+            TextSourceAttribution(
+              '© OpenStreetMap contributors',
+              onTap: () => launchUrl(
+                Uri.parse('https://www.openstreetmap.org/copyright'),
+                mode: LaunchMode.externalApplication,
+              ),
+            ),
+          ],
         ),
         // User location marker
         MarkerLayer(markers: [
