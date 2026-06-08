@@ -17,9 +17,9 @@ class RunwayCard extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: kCard,
+        color: context.col.card,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: kBorder, width: 0.5),
+        border: Border.all(color: context.col.border, width: 0.5),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -29,13 +29,13 @@ class RunwayCard extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(14, 12, 14, 10),
             child: Row(
               children: [
-                const Icon(Icons.airplanemode_active_rounded,
-                    color: kAccent, size: 16),
+                Icon(Icons.airplanemode_active_rounded,
+                    color: context.col.accent, size: 16),
                 const SizedBox(width: 8),
                 Text(
                   runway.designator,
-                  style: const TextStyle(
-                    color: kTextPrimary,
+                  style: TextStyle(
+                    color: context.col.textPrimary,
                     fontSize: 15,
                     fontWeight: FontWeight.w700,
                     fontFamily: 'monospace',
@@ -90,7 +90,7 @@ class RunwayCard extends StatelessWidget {
                   Container(
                     width: 1,
                     height: 60,
-                    color: kBorder,
+                    color: context.col.border,
                     margin: const EdgeInsets.symmetric(horizontal: 12),
                   ),
                   Expanded(
@@ -147,8 +147,8 @@ class _RunwayEnd extends StatelessWidget {
       children: [
         Text(
           ident,
-          style: const TextStyle(
-            color: kTextPrimary,
+          style: TextStyle(
+            color: context.col.textPrimary,
             fontSize: 20,
             fontWeight: FontWeight.w800,
             fontFamily: 'monospace',
@@ -158,14 +158,14 @@ class _RunwayEnd extends StatelessWidget {
           const SizedBox(height: 2),
           Text(
             '${heading!.toStringAsFixed(0)}° true',
-            style: const TextStyle(color: kTextSecondary, fontSize: 12),
+            style: TextStyle(color: context.col.textSecondary, fontSize: 12),
           ),
         ],
         if (displacedFt != null && displacedFt! > 0) ...[
           const SizedBox(height: 2),
           Text(
             'Disp. ${displacedFt} ft',
-            style: const TextStyle(color: kTextMuted, fontSize: 11),
+            style: TextStyle(color: context.col.textMuted, fontSize: 11),
           ),
         ],
         if (ils != null) ...[
@@ -231,10 +231,10 @@ class _Stat extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 13, color: kTextMuted),
+        Icon(icon, size: 13, color: context.col.textMuted),
         const SizedBox(width: 5),
         Text(label,
-            style: const TextStyle(color: kTextSecondary, fontSize: 12)),
+            style: TextStyle(color: context.col.textSecondary, fontSize: 12)),
       ],
     );
   }

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../constants.dart';
 import '../models/airport.dart';
+import '../providers/app_provider.dart';
 
 class AirportTile extends StatelessWidget {
   const AirportTile({
@@ -20,8 +22,9 @@ class AirportTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final col = context.col;
     return Material(
-      color: kCard,
+      color: col.card,
       borderRadius: BorderRadius.circular(12),
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
@@ -29,7 +32,7 @@ class AirportTile extends StatelessWidget {
         child: Container(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: kBorder, width: 0.5),
+            border: Border.all(color: col.border, width: 0.5),
           ),
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           child: Row(
@@ -39,7 +42,7 @@ class AirportTile extends StatelessWidget {
                 width: 4,
                 height: 44,
                 decoration: BoxDecoration(
-                  color: _typeColor(airport.type),
+                  color: _typeColor(airport.type, col.accent),
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -49,14 +52,14 @@ class AirportTile extends StatelessWidget {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: kBackground,
+                  color: col.background,
                   borderRadius: BorderRadius.circular(6),
-                  border: Border.all(color: kBorder),
+                  border: Border.all(color: col.border),
                 ),
                 child: Text(
                   airport.displayCode,
-                  style: const TextStyle(
-                    color: kAccent,
+                  style: TextStyle(
+                    color: col.accent,
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
                     letterSpacing: 0.5,
@@ -72,8 +75,8 @@ class AirportTile extends StatelessWidget {
                   children: [
                     Text(
                       airport.name,
-                      style: const TextStyle(
-                        color: kTextPrimary,
+                      style: TextStyle(
+                        color: col.textPrimary,
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
                       ),
@@ -87,8 +90,8 @@ class AirportTile extends StatelessWidget {
                           Flexible(
                             child: Text(
                               airport.locationString,
-                              style: const TextStyle(
-                                color: kTextSecondary,
+                              style: TextStyle(
+                                color: col.textSecondary,
                                 fontSize: 12,
                               ),
                               maxLines: 1,
@@ -98,13 +101,14 @@ class AirportTile extends StatelessWidget {
                         ],
                         if (distanceKm != null) ...[
                           if (airport.locationString.isNotEmpty)
-                            const Text(' · ',
+                            Text(' · ',
                                 style: TextStyle(
-                                    color: kTextMuted, fontSize: 12)),
+                                    color: col.textMuted, fontSize: 12)),
                           Text(
-                            _formatDist(distanceKm!),
-                            style: const TextStyle(
-                              color: kAccent,
+                            formatDistance(distanceKm!,
+                                context.read<AppProvider>().distanceUnit),
+                            style: TextStyle(
+                              color: col.accent,
                               fontSize: 12,
                               fontWeight: FontWeight.w500,
                             ),
@@ -124,7 +128,7 @@ class AirportTile extends StatelessWidget {
                         ? Icons.star_rounded
                         : Icons.star_outline_rounded,
                     key: ValueKey(isFavourite),
-                    color: isFavourite ? kAccent : kTextMuted,
+                    color: isFavourite ? col.accent : col.textMuted,
                     size: 22,
                   ),
                 ),
@@ -140,10 +144,10 @@ class AirportTile extends StatelessWidget {
     );
   }
 
-  Color _typeColor(String type) {
+  Color _typeColor(String type, Color accent) {
     switch (type) {
       case 'large_airport':
-        return kAccent;
+        return accent;
       case 'medium_airport':
         return const Color(0xFF64B5F6);
       case 'small_airport':
@@ -153,7 +157,7 @@ class AirportTile extends StatelessWidget {
       case 'seaplane_base':
         return const Color(0xFF4DD0E1);
       default:
-        return kTextMuted;
+        return const Color(0xFF8EA4C0);
     }
   }
 

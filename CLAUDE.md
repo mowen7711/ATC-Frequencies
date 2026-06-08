@@ -1,111 +1,395 @@
 # ATC Frequencies — Project Context
 
 ## What this app does
-Cross-platform Flutter app (iOS + Android) listing worldwide airport ATC frequencies. Users can search airports by name/ICAO/IATA/city, star favourites, pin a home airport, view nearby airports via GPS, and see a map. A toggleable background service shows a persistent notification listing the nearest airports.
+Flutter Android app (v1.0.0) listing worldwide airport ATC frequencies. Users can search ~70,000 airports by name/ICAO/IATA/city, star favourites, pin a home airport, view nearby airports via GPS, see a map, calculate VHF signal reception, and link out to LiveATC.net for live audio. A toggleable foreground service shows a persistent notification listing the nearest airports.
 
-## Data source
-OurAirports.com (CC0/public domain). Two CSVs downloaded on first launch, refreshed weekly:
-- `airports.csv` (~6 MB, ~70,000 rows) — `https://davidmegginson.github.io/ourairports-data/airports.csv`
-- `airport-frequencies.csv` (~3 MB, ~90,000 rows) — `https://davidmegginson.github.io/ourairports-data/airport-frequencies.csv`
-
-No API key. No rate limiting. Free forever. Hosting by the maintainer; act as your own mirror if traffic becomes a concern.
-
-## Tech stack
-| Layer | Choice | Notes |
-|-------|--------|-------|
-| Framework | Flutter/Dart | Single codebase, iOS + Android |
-| Local DB | sqflite **^2.2.8+4** | **pinned** — 2.3.x pulls jni which requires NDK |
-| State | provider (ChangeNotifier) | AppProvider is the main store |
-| GPS | geolocator ^13.0.1 | Also used for permission checks |
-| Background service | flutter_foreground_task ^8.14.0 (resolved 8.17.0) | Android foreground service, persistent notification |
-| Maps | flutter_map ^7.0.2 + OpenStreetMap tiles | No API key required |
-| CSV parsing | csv ^6.0.0 in compute() isolate | Keeps UI thread free |
-| Preferences | shared_preferences ^2.3.2 | Favourites, home airport, settings flags |
-
-## Key files
-
-### Services
-- `lib/services/database_service.dart` — SQLite: airports, frequencies, favourites tables. Batch inserts chunked at 500 rows. `getNearbyAirports()` uses bounding-box SQL pre-filter then Haversine in Dart (SQLite lacks trig).
-- `lib/services/data_service.dart` — Downloads + parses CSVs. `ensureData()` on launch; `forceRefresh()` clears DB and re-downloads.
-- `lib/services/background_service.dart` — Flutter foreground task. `BackgroundService.init()` called from main(). `start()` requests POST_NOTIFICATIONS then location permission before starting service.
-- `lib/services/terrain_service.dart` — VHF signal reception model (see Signal Reception section below).
-- `lib/services/location_service.dart` — Geolocator wrapper returning `LocationResult`.
-
-### Models
-- `lib/models/airport.dart` — `Airport.fromCsvRow()`, `distanceTo()` (Haversine, returns km), `displayCode` getter.
-- `lib/models/frequency.dart` — `Frequency.fromCsvRow()`, `sortWeight` for type ordering.
-
-### Providers
-- `lib/providers/app_provider.dart` — AppState enum, favourites, searchResults, nearbyAirports, homeAirport. SharedPreferences key: `home_airport_ident`.
-
-### Screens
-- `lib/screens/home_screen.dart` — Bottom nav: Favourites (0), Nearby (1), Search (2). `HomeScreen({initialTab})` for notification deep-link to Nearby.
-- `lib/screens/airport_detail_screen.dart` — Shows frequencies grouped by type, SignalReceptionCard, tap-to-copy on frequencies and coordinates.
-- `lib/screens/settings_screen.dart` — Toggle background monitoring, "Refresh data now" button.
-
-### Widgets
-- `lib/widgets/home_airport_card.dart` — Home airport banner at top of Favourites tab. Opens `_HomeAirportPicker` bottom sheet using `AppProvider.search()`.
-- `lib/widgets/signal_reception_card.dart` — Fetches GPS altitude, calls `TerrainService.calculate()`, shows result with signal bars, percentage, detail text and stats grid.
-
-## Signal reception model
-Physics: VHF line-of-sight (airband ~120 MHz).
-
-```
-theoreticalRangeKm = 4.12 × (√h_tx + √h_rx)   // radio horizon
-practicalRangeKm   = theoreticalRangeKm × 0.50  // 50% real-world factor
-ratio              = distanceKm / practicalRangeKm
-```
-
-Constants: `_towerHeightM=15` (ATC antenna), `_handsetHeightM=1.5`, `_realWorldFactor=0.50` (stock rubber-duck antenna, urban clutter, multipath).
-
-Scoring is deliberately pessimistic:
-| ratio | score | label |
-|-------|-------|-------|
-| ≤ 0.25 | 72% | Good |
-| ≤ 0.55 | 50% | Fair |
-| ≤ 0.85 | 28% | Marginal |
-| ≤ 1.15 | 12% | Poor |
-| > 1.15 | 4% | Very Poor |
-
-Height modifiers: ≥250 m advantage → +14%; ≥80 m → +7%; < −25 m → −12%; additionally < −100 m → another −12%.
-Proximity floors: < 2 km → min 74%; < 5 km → min 58%.
-
-## Background persistent notification
-**Android only** (iOS background location is different).
-
-- flutter_foreground_task runs `NearbyAirportsTaskHandler` in a separate Dart isolate.
-- Repeats every 5 minutes, queries nearby airports, updates notification text with nearest 3.
-- Notification channel: `atc_nearby_airports`, LOW importance/priority.
-- Tapping notification deep-links to Nearby tab via `FlutterForegroundTask.launchApp('/nearby')`.
-- **Critical**: Android 13+ (API 33+) requires POST_NOTIFICATIONS runtime permission. `BackgroundService.start()` calls `FlutterForegroundTask.requestNotificationPermission()` first.
-
-## Android manifest permissions
-`ACCESS_FINE_LOCATION`, `ACCESS_COARSE_LOCATION`, `ACCESS_BACKGROUND_LOCATION`, `FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_LOCATION`, `RECEIVE_BOOT_COMPLETED`, `WAKE_LOCK`, `INTERNET`.
-
-Service: `com.pravera.flutter_foreground_task.service.ForegroundService` with `foregroundServiceType="location"`.
-
-Do **not** manually declare `BootReceiver` — the plugin uses `RebootReceiver` internally.
-
-## Colours / theme
-Dark aviation theme. Key constants in `lib/constants.dart`:
-- `kBackground` = `#0B1120`
-- `kAccent` = `#FFB300` (amber)
-- `kCard`, `kSurface`, `kBorder`, `kTextPrimary`, `kTextSecondary`, `kTextMuted`
-
-Frequency type colours: ATIS=blue, TWR=red, GND=yellow, DEP/APP=orange, CTR=purple, UNICOM=green.
-
-## Known gotchas
-- sqflite **must** stay at ^2.2.8+4. 2.3.x introduces a jni dependency that requires Android NDK (1.5 GB download).
-- `CardTheme` was renamed to `CardThemeData` in recent Flutter; use `CardThemeData` in `ThemeData`.
-- `Switch.activeColor` is deprecated; use `activeThumbColor`.
-- Do not use `const` with non-const children in `SliverToBoxAdapter`.
-- The plugin's own AndroidManifest already merges POST_NOTIFICATIONS; you still need to call `requestNotificationPermission()` at runtime on Android 13+.
+## Project location
+`/Users/mark/Projects/atc_freq`
 
 ## Build / run
 ```bash
-cd /Users/mark/atc_freq
-flutter run          # connects to attached device/emulator
-flutter build apk    # release APK
-flutter build appbundle  # Play Store bundle
+cd /Users/mark/Projects/atc_freq
+/Users/mark/Documents/projects/flutter/bin/flutter build apk --release
+/Users/mark/Documents/projects/flutter/bin/flutter build appbundle   # Play Store
+adb install -r build/app/outputs/flutter-apk/app-release.apk
+adb shell am force-stop com.atcfreq.atc_freq
+adb shell am start -n com.atcfreq.atc_freq/com.atcfreq.atc_freq.MainActivity
 ```
-Android SDK lives at `~/Library/Android/sdk`. Java: temurin@17 (`/opt/homebrew/opt/temurin@17`).
+Android SDK: `~/Library/Android/sdk`. Java: temurin@17 (`/opt/homebrew/opt/temurin@17`).
+Flutter: `/Users/mark/Documents/projects/flutter/bin/flutter`
+
+---
+
+## Tech stack
+
+| Layer | Package | Version | Notes |
+|-------|---------|---------|-------|
+| Framework | Flutter/Dart | sdk ≥3.3.0 | Android only in practice |
+| Local DB | sqflite | **^2.2.8+4** | **PINNED** — 2.3.x requires Android NDK |
+| State | provider | ^6.1.2 | ChangeNotifier pattern |
+| GPS | geolocator | ^13.0.1 | Permission + altitude |
+| Background service | flutter_foreground_task | ^8.14.0 | Nearby airport notification |
+| Persistent notifications | flutter_local_notifications | ^17.2.3 | Frequency display notification |
+| Maps | flutter_map | ^7.0.2 | OpenStreetMap, no API key |
+| CSV parsing | csv | ^6.0.0 | Parsed in `compute()` isolate |
+| Preferences | shared_preferences | ^2.3.2 | Settings + favourites |
+| HTTP | http | ^1.2.1 | CSV download + metrics POST |
+| Accelerometer | sensors_plus | ^6.1.0 | Shake-to-report |
+| URL launching | url_launcher | ^6.3.0 | LiveATC.net links |
+| Package info | package_info_plus | ^8.0.0 | Version display + metrics |
+
+---
+
+## Data source
+OurAirports.com (CC0). Four CSVs downloaded on first launch, refreshed weekly:
+- `airports.csv` (~6 MB, ~70,000 rows)
+- `airport-frequencies.csv` (~3 MB, ~90,000 rows)
+- `runways.csv` (~2 MB)
+- `navaids.csv` (~2 MB)
+
+URLs in `lib/constants.dart`. No API key. No rate limiting.
+
+---
+
+## File structure
+
+### `lib/`
+```
+constants.dart          — colours, URLs, DistanceUnit enum, formatDistance(), formatRadius()
+main.dart               — MultiProvider setup, dark/light/system ThemeData, _Root with shake + splash overlay
+
+models/
+  airport.dart          — Airport.fromCsvRow(), distanceTo() Haversine, displayCode getter
+  frequency.dart        — Frequency.fromCsvRow(), sortWeight, color getter
+  navaid.dart           — Navaid.fromCsvRow(), frequencyDisplay, isIls
+  runway.dart           — Runway.fromCsvRow()
+
+providers/
+  app_provider.dart     — AppState, favourites, search, nearby, homeAirport, distanceUnit, runwayLabels, ETA
+  theme_provider.dart   — ThemeMode persisted in SharedPreferences (key: theme_mode)
+
+screens/
+  splash_screen.dart    — Intro animation (plane + radio arcs), calls onDone() callback
+  loading_screen.dart   — Landing animation (plane on runway), progress bar, humorous messages
+  home_screen.dart      — IndexedStack bottom nav: Favourites(0), Nearby(1), Search(2), Settings(3)
+  airport_detail_screen.dart — SliverAppBar, map, frequencies, signal reception, airport info
+  nearby_screen.dart    — GPS nearby with radius chips (km or miles), map toggle
+  search_screen.dart    — Real-time search with debounce
+  settings_screen.dart  — Appearance, monitoring, data, distance unit, data transparency, feedback
+
+services/
+  data_service.dart     — ensureData() / forceRefresh(), humorous progress messages
+  database_service.dart — SQLite CRUD, batch inserts, Haversine nearby, runway designators
+  background_service.dart — flutter_foreground_task, nearby airport notification
+  frequency_notification_service.dart — Pinned frequency list notification
+  location_service.dart — Geolocator wrapper → LocationResult
+  terrain_service.dart  — VHF signal model, SignalResult, SignalQuality enum
+  metrics_service.dart  — Anonymous analytics → Cloudflare Worker → NeonDB
+  sdr_service.dart      — iqsrc:// intent for RTL-SDR / SDR Touch integration
+  shake_service.dart    — Accelerometer shake detection (threshold 18 m/s², 1.5s cooldown)
+
+theme/
+  app_colors.dart       — AppColors ThemeExtension (dark + light), context.col extension
+
+widgets/
+  airport_tile.dart     — Airport list item with distance, type strip, favourite button
+  frequency_card.dart   — Frequency row with type badge, copy + SDR listen button
+  bug_report_sheet.dart — Bottom sheet bug report (shake or button triggered)
+  home_airport_card.dart — Home airport banner in Favourites tab
+  runway_card.dart      — Runway info with ILS chip
+  signal_reception_card.dart — VHF reception estimate + LiveATC suggestion
+  update_banner.dart    — Background update in progress banner
+```
+
+### Outside `lib/`
+```
+metrics-relay/
+  index.js              — Cloudflare Worker: validates + bulk-inserts metrics to NeonDB
+  wrangler.toml         — Worker config (secret: NEON_DATABASE_URL)
+  schema.sql            — NeonDB atc_metrics table + indexes
+  package.json          — @neondatabase/serverless dependency
+
+grafana/
+  overview.json         — App opens, installs, feature usage, locale, version split
+  content.json          — Top airports, freq types copied, SDR/LiveATC metrics
+  performance.json      — Download stage timings p50/p95/p99
+  bugs.json             — Bug report dashboard with full report text table
+  map.json              — World map of app launches (Cloudflare IP geolocation)
+
+assets/
+  icon/                 — App icon SVG/PNG, plane_only.png (splash), plane_side.png (loading)
+  data/                 — (empty — data downloaded at runtime)
+
+docs/
+  privacy-policy.html   — Hosted on GitHub Pages
+  feature-graphic.svg   — Play Store feature graphic 1024×500px
+```
+
+---
+
+## Providers
+
+### AppProvider (`lib/providers/app_provider.dart`)
+Single ChangeNotifier for all app state.
+
+**SharedPreferences keys:**
+- `home_airport_ident` — ICAO string
+- `distance_unit` — `"km"` or `"miles"`
+
+**Key getters:**
+- `state` — AppState.loading / ready / error
+- `distanceUnit` — DistanceUnit enum (km/miles)
+- `nearbyRadius` — double (always km internally)
+- `runwayLabels` — List<String> shown on loading screen during refresh
+- `estimatedTimeRemaining` — String? ETA during download
+
+**Distance unit:** All internal calculations are km. `setDistanceUnit()` snaps `nearbyRadius` to nearest value in the appropriate radius array (`kRadiiKm` or `kRadiiMiles`).
+
+### ThemeProvider (`lib/providers/theme_provider.dart`)
+Stores `ThemeMode` (system/light/dark) in SharedPreferences key `theme_mode`.
+
+---
+
+## Theme system
+
+`AppColors` ThemeExtension defined in `lib/theme/app_colors.dart`. All widgets use `context.col.*` rather than hardcoded constants.
+
+| Token | Dark | Light |
+|-------|------|-------|
+| background | #0B1120 | #F0F4F8 |
+| surface | #131E30 | #FFFFFF |
+| card | #1C2B40 | #FFFFFF |
+| border | #2A3F5A | #D0DCE8 |
+| accent | #FFB300 | #E6A000 |
+| textPrimary | #E8EDF5 | #0B1120 |
+| textSecondary | #8EA4C0 | #4A6280 |
+| textMuted | #4A6280 | #8EA4C0 |
+
+Theme selector in Settings → Appearance (System / Light / Dark).
+
+**AppBar gotcha:** Must have `scrolledUnderElevation: 0` and `surfaceTintColor: Colors.transparent` in the AppBarTheme — otherwise Material 3 darkens the whole scaffold when content scrolls under the AppBar.
+
+---
+
+## SQLite schema (v2)
+
+```sql
+airports       (id, ident, type, name, latitude_deg, longitude_deg,
+                elevation_ft, continent, iso_country, iso_region,
+                municipality, gps_code, iata_code)
+
+frequencies    (id, airport_ref, airport_ident, type, description, frequency_mhz)
+
+runways        (id, airport_ref, airport_ident, length_ft, width_ft, surface,
+                lighted, closed, le_ident, le_heading_degT,
+                le_displaced_threshold_ft, he_ident, he_heading_degT,
+                he_displaced_threshold_ft)
+
+navaids        (id, ident, name, type, frequency_khz, dme_frequency_khz,
+                dme_channel, associated_airport)
+
+favourites     (ident TEXT PRIMARY KEY, added_at INTEGER)
+```
+
+Upgrade from v1→v2: creates runways + navaids tables, clears airports + frequencies so they are re-downloaded.
+
+---
+
+## VHF signal reception model (`lib/services/terrain_service.dart`)
+
+Physics: 4/3 Earth radius refraction model, VHF line-of-sight (~120 MHz airband).
+
+```
+theoreticalRangeKm = 4.12 × (√h_tx_m + √h_rx_m)
+practicalRangeKm   = theoreticalRangeKm × 0.50   // stock rubber-duck penalty
+ratio              = distanceKm / practicalRangeKm
+```
+
+Constants: `_towerHeightM=15`, `_handsetHeightM=1.5`, `_realWorldFactor=0.50`.
+
+| ratio | pct | label | quality |
+|-------|-----|-------|---------|
+| ≤0.25 | 72% | Good | good |
+| ≤0.55 | 50% | Fair | fair |
+| ≤0.85 | 28% | Marginal | marginal |
+| ≤1.15 | 12% | Poor | poor |
+| ≤4.0  | 4%  | Very Poor | poor |
+| ≤physicalMax | 0% | Beyond Range | beyondRange |
+| >physicalMax | 0% | Out of Range | outOfRange |
+
+`physicalMax = max(theoreticalRangeKm × 8, 300 km)`
+
+Height modifiers: +14% if >250m above airport; +7% if >80m; −12% if <−25m; additional −12% if <−100m.
+Proximity floors: min 74% if <2km; min 58% if <5km.
+
+For `beyondRange` and `outOfRange`: percentage and progress bar are hidden; LiveATC.net suggestion shown.
+
+---
+
+## Loading screen messages
+
+Aviation-themed humorous messages during data download, format: `"phrase (what's downloading)"`:
+
+- Airports: "Filing flight plan (airports)" → "Checking NOTAMs (airports)" → "Confirming route (airports)"
+- Frequencies: "Requesting ATC clearance (frequencies)" → "Tuning radios (frequencies)" → "Setting squelch (frequencies)"
+- Runways: "Getting ATIS (runways)" → "Checking runway conditions (runways)" → "Confirming departure runway (runways)"
+- Nav aids: "Programming the FMS (nav aids)" → "Setting ILS frequency (nav aids)" → "Confirming nav aids (nav aids)"
+- Complete: "Cleared for departure"
+
+ETA shown once >5% complete and >3 seconds elapsed. First-launch hint: "First run downloads ~9 MB of worldwide data — usually 1 to 2 minutes."
+
+---
+
+## Distance units
+
+`DistanceUnit` enum in `constants.dart` with `km` and `miles` values.
+
+`formatDistance(double km, DistanceUnit unit) → String` — converts for display.
+`formatRadius(double km, DistanceUnit unit) → String` — chip labels (rounds to whole miles).
+
+Radius arrays:
+- `kRadiiKm = [10, 25, 50, 100, 200]`
+- `kRadiiMiles = [8.047, 16.093, 40.234, 80.467, 160.934]` (≈5, 10, 25, 50, 100 miles)
+
+Switching unit snaps `nearbyRadius` to nearest value in new array.
+
+---
+
+## Metrics pipeline
+
+**Architecture:** App → Cloudflare Worker → NeonDB → Grafana
+
+**Worker URL:** `https://atc-freq-metrics.mark-78f.workers.dev`
+**NeonDB:** `ep-sweet-band-abiz6722-pooler.eu-west-2.aws.neon.tech` / `neondb`
+
+`MetricsService` (`lib/services/metrics_service.dart`):
+- Only active when `_kRelayUrl` is non-empty and NOT in debug mode
+- Buffers events in memory, flushes every 30 seconds or on app background
+- Anonymous UUID install ID (stored in SharedPreferences key `metrics_install_id`)
+- Sends JSON: `{ "events": [{ measurement, install_id, tags, fields, ts }] }`
+
+**Measurements tracked:**
+| measurement | tags | fields |
+|-------------|------|--------|
+| app_event | event (app_open/session_end) | version, locale / duration_ms |
+| airport_view | icao, type | — |
+| feature_use | feature | varies |
+| download_stage | stage | duration_ms, success, bytes |
+| download_complete | — | total_ms |
+| bug_report | — | description, context, app_version |
+
+**feature_use values:** `freq_copy`, `sdr_launch`, `add_favourite`, `set_home`, `liveatc_suggested`, `liveatc_tapped_signal`, `liveatc_launched`
+
+**Cloudflare Worker** (`metrics-relay/index.js`):
+- Accepts POST with JSON payload
+- Validates measurement names, UUID format, body size ≤64 KB
+- Injects Cloudflare IP geolocation (`geo_country`, `geo_city`, `geo_lat`, `geo_lon`, `geo_region`) into every event's tags
+- Bulk-inserts via `UNNEST` into `atc_metrics` table
+- Returns HTTP 204 always (never blocks the app)
+- Secret `NEON_DATABASE_URL` set via `npx wrangler secret put`
+
+**Grafana dashboards** (import JSON from `grafana/`):
+- `overview.json` — daily actives, installs, feature usage, locale/version split
+- `content.json` — top airports, freq types, SDR/LiveATC engagement, tap-through rates
+- `performance.json` — download stage p50/p95/p99, total time distribution
+- `bugs.json` — bug report table, version split, repeat reporters
+- `map.json` — world map of app launches (24h), country/city tables
+
+All dashboards use data source UID `cfofy105jfxtsf` (NeonDB PostgreSQL).
+
+---
+
+## SDR integration (`lib/services/sdr_service.dart`)
+
+Launches RTL-SDR driver via `iqsrc://` intent:
+```
+iqsrc://-a 127.0.0.1 -p 1234 -s 1024000 -f {freqHz}
+```
+
+Compatible with SDR Touch (`marto.androsdr2`) and RF Analyzer. Driver package: `marto.rtl_tcp_andro`.
+
+`AndroidManifest.xml` queries block declares `iqsrc` scheme and both packages.
+
+If driver not installed: dialog with Play Store deep-link.
+
+---
+
+## LiveATC.net integration
+
+URL format: `https://www.liveatc.net/search/?icao={ICAO}`
+
+Opened via `url_launcher` in `LaunchMode.externalApplication`.
+
+**Restricted countries** (`kRestrictedCountries` in `airport_detail_screen.dart`):
+`GB, DE, BE, FR, IS, IN, IT, NZ, ES` — LiveATC has no feeds for these due to local communications law.
+
+Two entry points:
+1. **Signal reception card** — tappable link at bottom for all airports; humorous amber banner for `beyondRange`/`outOfRange` (5 rotating messages based on ICAO hash)
+2. ~~Frequencies header~~ — removed
+
+---
+
+## Bug reporting
+
+Triggered by:
+1. Shaking the phone (`ShakeService` — threshold 18 m/s², 1.5s cooldown)
+2. Settings → Feedback → "Found a problem?" button
+
+Shows `BugReportSheet` bottom sheet. Fields: description (required), context (optional). Sends via `MetricsService.trackBugReport()` → NeonDB measurement `bug_report`.
+
+Query in NeonDB:
+```sql
+SELECT ts, fields->>'description', fields->>'context', fields->>'app_version'
+FROM atc_metrics WHERE measurement = 'bug_report' ORDER BY ts DESC;
+```
+
+---
+
+## Background monitoring
+
+Android-only. `flutter_foreground_task` runs `NearbyAirportsTaskHandler` in a Dart isolate.
+- Repeats every 5 minutes
+- Queries nearest 3 airports, updates notification text
+- Notification channel: `atc_nearby_airports`, LOW importance
+- Tap deep-links to Nearby tab via `/nearby` route
+- Requires POST_NOTIFICATIONS runtime permission (Android 13+)
+
+Frequency display notification: pins full frequency list for a selected airport in notification shade. Restored on app restart.
+
+---
+
+## Splash / loading screens
+
+**Splash** (`SplashScreen`): 3 AnimationControllers. Sequence: fade in (500ms) → hold (400ms) → plane flies up + scales down (600ms) → outro fade (300ms). Calls `onDone()` callback; `_Root` removes it from the Stack overlay.
+
+**Loading** (`LoadingScreen`): Plane landing on runway. Progress bar is one-directional (`max(_displayProgress, target)`). `_ArcsPainter`, `_RunwayPainter`, `_GlideSlopePainter` all accept accent colour as constructor parameter (not from context — they're CustomPainters).
+
+---
+
+## Known gotchas
+
+- `sqflite` **must** stay at `^2.2.8+4` — 2.3.x introduces jni requiring Android NDK (1.5 GB download)
+- `scrolledUnderElevation: 0` + `surfaceTintColor: Colors.transparent` **required** in AppBarTheme — Material 3 darkens the scaffold on scroll otherwise
+- `ThemeData.colorScheme.surface` must be `kBackground` — if set to `kSurface`, ListView body renders a different colour than the scaffold
+- `_Root` uses `ColoredBox` not `Scaffold` — avoids nested Scaffold background conflicts
+- `CustomPainter` subclasses cannot use `context.col.*` — pass colour as constructor parameter from the parent `build()` method
+- No `const` on widgets that use `context.col.*` — context is runtime, not compile-time
+- `Navigator.pop()` from Settings was left over from when Settings was a pushed route — removed (Settings is now an IndexedStack tab)
+- `SplashScreen` must call `widget.onDone()` not `Navigator.pushReplacementNamed()` — navigator history is empty at splash time
+
+---
+
+## Android signing
+
+Keystore: `android/key.properties` (gitignored).
+- Alias: `atc_frequencies`
+- CN: Mark Owen / 4T Technologies / Ellesmere Port, Cheshire, GB
+
+`build.gradle.kts` reads `key.properties` for `signingConfigs.release`.
+R8 minification enabled. Proguard rules in `android/app/proguard-rules.pro`.
+
+## Package name
+`com.atcfreq.atc_freq`
+
+## Privacy policy
+`https://mowen7711.github.io/ATC-Frequencies/privacy-policy.html`

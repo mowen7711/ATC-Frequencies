@@ -33,10 +33,10 @@ class _SetHomePrompt extends StatelessWidget {
         margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: kCard,
+          color: context.col.card,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-              color: kAccent.withAlpha(60), width: 1, style: BorderStyle.solid),
+              color: context.col.accent.withAlpha(60), width: 1, style: BorderStyle.solid),
         ),
         child: Row(
           children: [
@@ -44,32 +44,32 @@ class _SetHomePrompt extends StatelessWidget {
               width: 44,
               height: 44,
               decoration: BoxDecoration(
-                color: kAccent.withAlpha(20),
+                color: context.col.accent.withAlpha(20),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.home_outlined, color: kAccent, size: 22),
+              child: Icon(Icons.home_outlined, color: context.col.accent, size: 22),
             ),
             const SizedBox(width: 14),
-            const Expanded(
+            Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text('Set Home Airport',
                       style: TextStyle(
-                          color: kTextPrimary,
+                          color: context.col.textPrimary,
                           fontSize: 15,
                           fontWeight: FontWeight.w600)),
-                  SizedBox(height: 3),
+                  const SizedBox(height: 3),
                   Text(
                     'Pin your local airport for quick access to its frequencies.',
                     style: TextStyle(
-                        color: kTextSecondary, fontSize: 12, height: 1.4),
+                        color: context.col.textSecondary, fontSize: 12, height: 1.4),
                   ),
                 ],
               ),
             ),
-            const Icon(Icons.add_circle_outline_rounded,
-                color: kAccent, size: 22),
+            Icon(Icons.add_circle_outline_rounded,
+                color: context.col.accent, size: 22),
           ],
         ),
       ),
@@ -80,7 +80,7 @@ class _SetHomePrompt extends StatelessWidget {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: kSurface,
+      backgroundColor: context.col.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -107,9 +107,9 @@ class _HomeCard extends StatelessWidget {
       child: Container(
         margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
         decoration: BoxDecoration(
-          color: kCard,
+          color: context.col.card,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: kAccent.withAlpha(80), width: 1),
+          border: Border.all(color: context.col.accent.withAlpha(80), width: 1),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -119,20 +119,20 @@ class _HomeCard extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(14, 12, 14, 0),
               child: Row(
                 children: [
-                  const Icon(Icons.home_rounded, color: kAccent, size: 16),
+                  Icon(Icons.home_rounded, color: context.col.accent, size: 16),
                   const SizedBox(width: 6),
-                  const Text('Home Airport',
+                  Text('Home Airport',
                       style: TextStyle(
-                          color: kAccent,
+                          color: context.col.accent,
                           fontSize: 11,
                           fontWeight: FontWeight.w700,
                           letterSpacing: 0.8)),
                   const Spacer(),
                   GestureDetector(
                     onTap: () => _showChangeDialog(context),
-                    child: const Text('Change',
+                    child: Text('Change',
                         style: TextStyle(
-                            color: kTextMuted,
+                            color: context.col.textMuted,
                             fontSize: 11,
                             decoration: TextDecoration.underline)),
                   ),
@@ -149,14 +149,14 @@ class _HomeCard extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(
                         horizontal: 10, vertical: 6),
                     decoration: BoxDecoration(
-                      color: kBackground,
+                      color: context.col.background,
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: kAccent.withAlpha(100)),
+                      border: Border.all(color: context.col.accent.withAlpha(100)),
                     ),
                     child: Text(
                       airport.displayCode,
-                      style: const TextStyle(
-                        color: kAccent,
+                      style: TextStyle(
+                        color: context.col.accent,
                         fontSize: 18,
                         fontWeight: FontWeight.w800,
                         fontFamily: 'monospace',
@@ -170,8 +170,8 @@ class _HomeCard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(airport.name,
-                            style: const TextStyle(
-                                color: kTextPrimary,
+                            style: TextStyle(
+                                color: context.col.textPrimary,
                                 fontSize: 15,
                                 fontWeight: FontWeight.w600),
                             maxLines: 1,
@@ -182,16 +182,16 @@ class _HomeCard extends StatelessWidget {
                             airport.locationString,
                             kAirportTypeLabels[airport.type] ?? '',
                           ].where((s) => s.isNotEmpty).join(' · '),
-                          style: const TextStyle(
-                              color: kTextSecondary, fontSize: 12),
+                          style: TextStyle(
+                              color: context.col.textSecondary, fontSize: 12),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
                       ],
                     ),
                   ),
-                  const Icon(Icons.chevron_right_rounded,
-                      color: kTextMuted, size: 20),
+                  Icon(Icons.chevron_right_rounded,
+                      color: context.col.textMuted, size: 20),
                 ],
               ),
             ),
@@ -226,7 +226,7 @@ class _HomeCard extends StatelessWidget {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: kSurface,
+      backgroundColor: context.col.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -245,10 +245,10 @@ class _Chip extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 12, color: kTextMuted),
+        Icon(icon, size: 12, color: context.col.textMuted),
         const SizedBox(width: 4),
         Text(label,
-            style: const TextStyle(color: kTextMuted, fontSize: 11)),
+            style: TextStyle(color: context.col.textMuted, fontSize: 11)),
       ],
     );
   }
@@ -287,15 +287,15 @@ class _HomeAirportPickerState extends State<_HomeAirportPicker> {
               child: Container(
                 width: 36, height: 4,
                 decoration: BoxDecoration(
-                  color: kBorder,
+                  color: context.col.border,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
             ),
             const SizedBox(height: 16),
-            const Text('Choose Home Airport',
+            Text('Choose Home Airport',
                 style: TextStyle(
-                    color: kTextPrimary,
+                    color: context.col.textPrimary,
                     fontSize: 18,
                     fontWeight: FontWeight.w700)),
             const SizedBox(height: 12),
@@ -303,11 +303,11 @@ class _HomeAirportPickerState extends State<_HomeAirportPicker> {
             TextField(
               controller: _controller,
               autofocus: true,
-              style: const TextStyle(color: kTextPrimary),
-              decoration: const InputDecoration(
+              style: TextStyle(color: context.col.textPrimary),
+              decoration: InputDecoration(
                 hintText: 'Search by name, ICAO or IATA…',
                 prefixIcon:
-                    Icon(Icons.search_rounded, color: kTextMuted),
+                    Icon(Icons.search_rounded, color: context.col.textMuted),
               ),
               onChanged: (q) =>
                   context.read<AppProvider>().search(q),
@@ -318,14 +318,14 @@ class _HomeAirportPickerState extends State<_HomeAirportPicker> {
               child: Consumer<AppProvider>(
                 builder: (context, provider, _) {
                   if (provider.searching) {
-                    return const Center(
-                        child: CircularProgressIndicator(color: kAccent));
+                    return Center(
+                        child: CircularProgressIndicator(color: context.col.accent));
                   }
                   if (provider.searchResults.isEmpty &&
                       _controller.text.isNotEmpty) {
-                    return const Center(
+                    return Center(
                         child: Text('No airports found',
-                            style: TextStyle(color: kTextSecondary)));
+                            style: TextStyle(color: context.col.textSecondary)));
                   }
                   return ListView.separated(
                     itemCount: provider.searchResults.length,
@@ -333,33 +333,33 @@ class _HomeAirportPickerState extends State<_HomeAirportPicker> {
                     itemBuilder: (context, i) {
                       final airport = provider.searchResults[i];
                       return ListTile(
-                        tileColor: kBackground,
+                        tileColor: context.col.background,
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10)),
                         leading: Container(
                           padding: const EdgeInsets.symmetric(
                               horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
-                            color: kCard,
+                            color: context.col.card,
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(airport.displayCode,
-                              style: const TextStyle(
-                                  color: kAccent,
+                              style: TextStyle(
+                                  color: context.col.accent,
                                   fontWeight: FontWeight.w700,
                                   fontSize: 12,
                                   fontFamily: 'monospace')),
                         ),
                         title: Text(airport.name,
-                            style: const TextStyle(
-                                color: kTextPrimary, fontSize: 14),
+                            style: TextStyle(
+                                color: context.col.textPrimary, fontSize: 14),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis),
                         subtitle: Text(airport.locationString,
-                            style: const TextStyle(
-                                color: kTextSecondary, fontSize: 12)),
-                        trailing: const Icon(Icons.home_rounded,
-                            color: kAccent, size: 18),
+                            style: TextStyle(
+                                color: context.col.textSecondary, fontSize: 12)),
+                        trailing: Icon(Icons.home_rounded,
+                            color: context.col.accent, size: 18),
                         onTap: () {
                           context
                               .read<AppProvider>()

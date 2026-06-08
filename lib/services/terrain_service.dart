@@ -40,7 +40,7 @@ class SignalResult {
   });
 }
 
-enum SignalQuality { good, fair, marginal, poor }
+enum SignalQuality { good, fair, marginal, poor, beyondRange, outOfRange }
 
 class TerrainService {
   TerrainService._();
@@ -104,6 +104,30 @@ class TerrainService {
     SignalQuality quality;
     final List<String> notes = [];
 
+    // Hard physical limits — VHF is strictly line-of-sight.
+    // The theoretical range already accounts for altitude; anything beyond
+    // 8× theoretical is physically unreachable regardless of equipment.
+    // Beyond 3× theoretical is firmly outside any practical scenario.
+    final physicalMax = theoreticalRangeKm * 8.0;
+    final absoluteMax = max(physicalMax, 300.0); // floor at 300 km
+
+    if (distanceKm > absoluteMax) {
+      // Physically impossible — Earth's curvature blocks VHF entirely
+      return SignalResult(
+        distanceKm: distanceKm,
+        estimatedRangeKm: rangeKm,
+        userAltitudeM: userAltitudeM,
+        airportElevationM: airportElev,
+        heightDifferenceM: heightDiff,
+        percent: 0,
+        label: 'Out of Range',
+        detail: 'VHF signals cannot travel this distance — the Earth\'s curvature '
+            'blocks line-of-sight at ${distanceKm.toStringAsFixed(0)} km. '
+            'No antenna can overcome this.',
+        quality: SignalQuality.outOfRange,
+      );
+    }
+
     // Base score — deliberately pessimistic to reflect stock antenna reality
     if (ratio <= 0.25) {
       pct = 72; label = 'Good'; quality = SignalQuality.good;
@@ -117,25 +141,32 @@ class TerrainService {
     } else if (ratio <= 1.15) {
       pct = 12; label = 'Poor'; quality = SignalQuality.poor;
       notes.add('Beyond practical handheld range — unlikely without an elevated external antenna.');
-    } else {
+    } else if (ratio <= 4.0) {
       pct = 4; label = 'Very Poor'; quality = SignalQuality.poor;
       notes.add('Too far for a handheld scanner. An elevated, high-gain antenna would be required.');
+    } else {
+      // Far beyond any practical scenario but not yet hitting physicalMax
+      pct = 0; label = 'Beyond Range'; quality = SignalQuality.beyondRange;
+      notes.add('At ${distanceKm.toStringAsFixed(0)} km this airport is too far for any ground-level '
+          'VHF reception. Reception would only be possible from an aircraft.');
     }
 
     // Height modifiers — smaller bonuses, larger penalties
-    if (heightDiff >= 250) {
-      pct = min(88, pct + 14);
-      notes.add('Good height advantage (+${heightDiff.toInt()} m) — extends your effective horizon.');
-    } else if (heightDiff >= 80) {
-      pct = min(80, pct + 7);
-      notes.add('Modest height advantage (+${heightDiff.toInt()} m) helps line-of-sight.');
-    } else if (heightDiff < -25) {
-      pct = max(3, pct - 12);
-      notes.add('You are ${(-heightDiff).toInt()} m below airport elevation — terrain obstruction likely.');
-    }
-    if (heightDiff < -100) {
-      pct = max(2, pct - 12); // additional penalty stacks
-      notes.add('Significant depression below airport — ground clutter will severely limit reception.');
+    if (quality != SignalQuality.beyondRange) {
+      if (heightDiff >= 250) {
+        pct = min(88, pct + 14);
+        notes.add('Good height advantage (+${heightDiff.toInt()} m) — extends your effective horizon.');
+      } else if (heightDiff >= 80) {
+        pct = min(80, pct + 7);
+        notes.add('Modest height advantage (+${heightDiff.toInt()} m) helps line-of-sight.');
+      } else if (heightDiff < -25) {
+        pct = max(3, pct - 12);
+        notes.add('You are ${(-heightDiff).toInt()} m below airport elevation — terrain obstruction likely.');
+      }
+      if (heightDiff < -100) {
+        pct = max(2, pct - 12);
+        notes.add('Significant depression below airport — ground clutter will severely limit reception.');
+      }
     }
 
     // Close proximity floor — honest ceiling even nearby (clutter, buildings)

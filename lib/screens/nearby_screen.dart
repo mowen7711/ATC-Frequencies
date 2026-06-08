@@ -27,7 +27,7 @@ class _NearbyScreenState extends State<NearbyScreen> {
 
         return Scaffold(
           appBar: AppBar(
-            title: const Text('Nearby Airports'),
+            title: Text('Nearby Airports'),
             actions: [
               if (hasLocation)
                 IconButton(
@@ -38,7 +38,7 @@ class _NearbyScreenState extends State<NearbyScreen> {
                   onPressed: () => setState(() => _mapView = !_mapView),
                 ),
               IconButton(
-                icon: const Icon(Icons.my_location_rounded),
+                icon: Icon(Icons.my_location_rounded),
                 tooltip: 'Find nearby airports',
                 onPressed: () => provider.findNearby(),
               ),
@@ -58,14 +58,14 @@ class _NearbyScreenState extends State<NearbyScreen> {
 
   Widget _buildBody(AppProvider provider) {
     if (provider.loadingNearby) {
-      return const Center(
+      return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            CircularProgressIndicator(color: kAccent),
+            CircularProgressIndicator(color: context.col.accent),
             SizedBox(height: 16),
             Text('Finding nearby airports…',
-                style: TextStyle(color: kTextSecondary)),
+                style: TextStyle(color: context.col.textSecondary)),
           ],
         ),
       );
@@ -105,18 +105,21 @@ class _FilterBar extends StatelessWidget {
   const _FilterBar({required this.provider});
   final AppProvider provider;
 
-  static const _radii = [10.0, 25.0, 50.0, 100.0, 200.0];
-
   @override
   Widget build(BuildContext context) {
+    final radii = provider.distanceUnit == DistanceUnit.miles
+        ? kRadiiMiles
+        : kRadiiKm;
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
       child: Row(
         children: [
-          const Text('Radius:', style: TextStyle(color: kTextSecondary, fontSize: 13)),
-          const SizedBox(width: 12),
-          ..._radii.map((r) {
-            final selected = provider.nearbyRadius == r;
+          Text('Radius:', style: TextStyle(color: context.col.textSecondary, fontSize: 13)),
+          SizedBox(width: 12),
+          ...radii.map((r) {
+            // Match selected by proximity (handles unit switching rounding)
+            final selected = (provider.nearbyRadius - r).abs() < 0.5;
             return Padding(
               padding: const EdgeInsets.only(right: 6),
               child: GestureDetector(
@@ -126,15 +129,15 @@ class _FilterBar extends StatelessWidget {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                   decoration: BoxDecoration(
-                    color: selected ? kAccent : kCard,
+                    color: selected ? context.col.accent : context.col.card,
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
-                        color: selected ? kAccent : kBorder, width: 1),
+                        color: selected ? context.col.accent : context.col.border, width: 1),
                   ),
                   child: Text(
-                    r >= 100 ? '${r.toInt()}km' : '${r.toInt()}km',
+                    formatRadius(r, provider.distanceUnit),
                     style: TextStyle(
-                      color: selected ? Colors.black : kTextSecondary,
+                      color: selected ? Colors.black : context.col.textSecondary,
                       fontSize: 12,
                       fontWeight:
                           selected ? FontWeight.w700 : FontWeight.normal,
@@ -162,7 +165,7 @@ class _ListView extends StatelessWidget {
     return ListView.separated(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
       itemCount: airports.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 8),
+      separatorBuilder: (_, __) => SizedBox(height: 8),
       itemBuilder: (context, i) {
         final (airport, dist) = airports[i];
         return FutureBuilder<bool>(
@@ -279,7 +282,7 @@ class _AirportMarker extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: kCard,
+        color: context.col.card,
         shape: BoxShape.circle,
         border: Border.all(color: color, width: 2),
         boxShadow: const [BoxShadow(color: Colors.black38, blurRadius: 3)],
@@ -307,25 +310,25 @@ class _NearbyHint extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.near_me_outlined, size: 72, color: kTextMuted),
-            const SizedBox(height: 24),
-            const Text('Find airports near you',
+            Icon(Icons.near_me_outlined, size: 72, color: context.col.textMuted),
+            SizedBox(height: 24),
+            Text('Find airports near you',
                 style: TextStyle(
-                    color: kTextPrimary,
+                    color: context.col.textPrimary,
                     fontSize: 20,
                     fontWeight: FontWeight.w600)),
-            const SizedBox(height: 12),
-            const Text(
+            SizedBox(height: 12),
+            Text(
               'Tap the locate button to see airports\nwithin your selected radius.',
               textAlign: TextAlign.center,
               style: TextStyle(
-                  color: kTextSecondary, fontSize: 14, height: 1.5),
+                  color: context.col.textSecondary, fontSize: 14, height: 1.5),
             ),
-            const SizedBox(height: 32),
+            SizedBox(height: 32),
             FilledButton.icon(
               onPressed: onTap,
-              icon: const Icon(Icons.my_location_rounded),
-              label: const Text('Find Nearby Airports'),
+              icon: Icon(Icons.my_location_rounded),
+              label: Text('Find Nearby Airports'),
             ),
           ],
         ),
@@ -348,19 +351,19 @@ class _EmptyNearby extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(Icons.airplanemode_inactive_rounded,
-                size: 64, color: kTextMuted),
-            const SizedBox(height: 20),
+                size: 64, color: context.col.textMuted),
+            SizedBox(height: 20),
             Text(
-              'No airports within ${radius.toInt()} km',
-              style: const TextStyle(
-                  color: kTextPrimary,
+              'No airports within ${formatRadius(radius, context.read<AppProvider>().distanceUnit)}',
+              style: TextStyle(
+                  color: context.col.textPrimary,
                   fontSize: 16,
                   fontWeight: FontWeight.w600),
             ),
-            const SizedBox(height: 10),
-            const Text(
+            SizedBox(height: 10),
+            Text(
               'Try increasing the radius above.',
-              style: TextStyle(color: kTextSecondary, fontSize: 13),
+              style: TextStyle(color: context.col.textSecondary, fontSize: 13),
             ),
           ],
         ),
@@ -382,23 +385,23 @@ class _ErrorView extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.location_off_rounded, size: 64, color: kTextMuted),
-            const SizedBox(height: 20),
-            const Text('Location unavailable',
+            Icon(Icons.location_off_rounded, size: 64, color: context.col.textMuted),
+            SizedBox(height: 20),
+            Text('Location unavailable',
                 style: TextStyle(
-                    color: kTextPrimary,
+                    color: context.col.textPrimary,
                     fontSize: 18,
                     fontWeight: FontWeight.w600)),
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
             Text(error,
                 textAlign: TextAlign.center,
                 style:
-                    const TextStyle(color: kTextSecondary, fontSize: 13)),
-            const SizedBox(height: 28),
+                    TextStyle(color: context.col.textSecondary, fontSize: 13)),
+            SizedBox(height: 28),
             FilledButton.icon(
               onPressed: onRetry,
-              icon: const Icon(Icons.refresh_rounded),
-              label: const Text('Try again'),
+              icon: Icon(Icons.refresh_rounded),
+              label: Text('Try again'),
             ),
           ],
         ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
 import '../constants.dart';
@@ -11,6 +12,7 @@ import '../models/navaid.dart';
 import '../models/runway.dart';
 import '../services/database_service.dart';
 import '../services/frequency_notification_service.dart';
+import '../services/metrics_service.dart';
 import '../widgets/frequency_card.dart';
 import '../widgets/runway_card.dart';
 import '../widgets/signal_reception_card.dart';
@@ -38,6 +40,8 @@ class _AirportDetailScreenState extends State<AirportDetailScreen> {
   }
 
   Future<void> _load() async {
+    MetricsService.instance.trackAirportView(
+        widget.airport.ident, widget.airport.type);
     final provider = context.read<AppProvider>();
     final results = await Future.wait([
       provider.isFavourite(widget.airport.ident),
@@ -75,7 +79,7 @@ class _AirportDetailScreenState extends State<AirportDetailScreen> {
           SnackBar(
             content: Text('${widget.airport.name} set as home airport'),
             behavior: SnackBarBehavior.floating,
-            backgroundColor: kCard,
+            backgroundColor: context.col.card,
             duration: const Duration(seconds: 2),
           ),
         );
@@ -90,11 +94,11 @@ class _AirportDetailScreenState extends State<AirportDetailScreen> {
       await svc.disable();
       if (mounted) {
         setState(() => _isPinned = false);
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Frequency notification removed'),
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: const Text('Frequency notification removed'),
           behavior: SnackBarBehavior.floating,
-          backgroundColor: kCard,
-          duration: Duration(seconds: 2),
+          backgroundColor: context.col.card,
+          duration: const Duration(seconds: 2),
         ));
       }
     } else {
@@ -105,7 +109,7 @@ class _AirportDetailScreenState extends State<AirportDetailScreen> {
           content: Text(
               '${widget.airport.name} frequencies pinned to notifications'),
           behavior: SnackBarBehavior.floating,
-          backgroundColor: kCard,
+          backgroundColor: context.col.card,
           duration: const Duration(seconds: 2),
         ));
       }
@@ -134,7 +138,9 @@ class _AirportDetailScreenState extends State<AirportDetailScreen> {
                 _FrequenciesSection(
                   frequencies: _frequencies,
                   loading: _loadingFreqs,
-                ),
+                  icao: airport.ident,
+                  isoCountry: airport.isoCountry,
+                ), // icao/isoCountry retained for future use
                 const SizedBox(height: 16),
                 // Signal reception directly under frequencies
                 Padding(
@@ -161,22 +167,22 @@ class _AirportDetailScreenState extends State<AirportDetailScreen> {
   SliverAppBar _buildAppBar(Airport airport) {
     return SliverAppBar(
       pinned: true,
-      backgroundColor: kBackground,
-      foregroundColor: kTextPrimary,
+      backgroundColor: context.col.background,
+      foregroundColor: context.col.textPrimary,
       title: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             airport.name,
-            style: const TextStyle(
-                fontSize: 16, fontWeight: FontWeight.w700, color: kTextPrimary),
+            style: TextStyle(
+                fontSize: 16, fontWeight: FontWeight.w700, color: context.col.textPrimary),
             overflow: TextOverflow.ellipsis,
           ),
           Text(
             [airport.ident, if (airport.iataCode.isNotEmpty) airport.iataCode]
                 .join(' · '),
-            style: const TextStyle(
-                fontSize: 12, color: kAccent, fontWeight: FontWeight.w600),
+            style: TextStyle(
+                fontSize: 12, color: context.col.accent, fontWeight: FontWeight.w600),
           ),
         ],
       ),
@@ -190,7 +196,7 @@ class _AirportDetailScreenState extends State<AirportDetailScreen> {
                   ? Icons.notifications_active_rounded
                   : Icons.notifications_none_rounded,
               key: ValueKey(_isPinned),
-              color: _isPinned ? kAccent : kTextSecondary,
+              color: _isPinned ? context.col.accent : context.col.textSecondary,
             ),
           ),
           tooltip: _isPinned
@@ -207,7 +213,7 @@ class _AirportDetailScreenState extends State<AirportDetailScreen> {
                 child: Icon(
                   isHome ? Icons.home_rounded : Icons.home_outlined,
                   key: ValueKey(isHome),
-                  color: isHome ? kAccent : kTextSecondary,
+                  color: isHome ? context.col.accent : context.col.textSecondary,
                 ),
               ),
               tooltip: isHome ? 'Remove home airport' : 'Set as home airport',
@@ -221,7 +227,7 @@ class _AirportDetailScreenState extends State<AirportDetailScreen> {
             child: Icon(
               _isFav ? Icons.star_rounded : Icons.star_outline_rounded,
               key: ValueKey(_isFav),
-              color: _isFav ? kAccent : kTextSecondary,
+              color: _isFav ? context.col.accent : context.col.textSecondary,
             ),
           ),
           tooltip: _isFav ? 'Remove from favourites' : 'Add to favourites',
@@ -241,6 +247,7 @@ class _MapSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final point = LatLng(airport.latitude!, airport.longitude!);
+    final accentColor = context.col.accent;
     return SizedBox(
       height: 200,
       child: FlutterMap(
@@ -263,7 +270,7 @@ class _MapSection extends StatelessWidget {
               height: 40,
               child: Container(
                 decoration: BoxDecoration(
-                  color: kAccent,
+                  color: accentColor,
                   shape: BoxShape.circle,
                   border: Border.all(color: Colors.white, width: 3),
                   boxShadow: const [
@@ -305,18 +312,18 @@ class _AirportInfoSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Airport Information',
+          Text('Airport Information',
               style: TextStyle(
-                  color: kTextPrimary,
+                  color: context.col.textPrimary,
                   fontSize: 18,
                   fontWeight: FontWeight.w700)),
           const SizedBox(height: 12),
           // ── Airport details card ─────────────────────────────────────────
           Container(
             decoration: BoxDecoration(
-              color: kCard,
+              color: context.col.card,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: kBorder, width: 0.5),
+              border: Border.all(color: context.col.border, width: 0.5),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -327,18 +334,18 @@ class _AirportInfoSection extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _infoRow(Icons.airplanemode_active_rounded,
+                      _infoRow(context, Icons.airplanemode_active_rounded,
                           kAirportTypeLabels[airport.type] ?? airport.type),
                       if (airport.municipality.isNotEmpty ||
                           airport.isoCountry.isNotEmpty)
-                        _infoRow(Icons.location_on_rounded,
+                        _infoRow(context, Icons.location_on_rounded,
                             airport.locationString),
                       if (airport.elevationFt != null)
-                        _infoRow(Icons.terrain_rounded,
+                        _infoRow(context, Icons.terrain_rounded,
                             '${airport.elevationFt} ft  ·  '
                             '${(airport.elevationFt! * 0.3048).round()} m elevation'),
                       if (airport.iataCode.isNotEmpty)
-                        _infoRow(Icons.confirmation_number_outlined,
+                        _infoRow(context, Icons.confirmation_number_outlined,
                             'IATA: ${airport.iataCode}'),
                     ],
                   ),
@@ -350,15 +357,15 @@ class _AirportInfoSection extends StatelessWidget {
                 const Divider(height: 1),
                 _SubHeader('Runways'),
                 if (loading)
-                  const Padding(
-                    padding: EdgeInsets.all(16),
-                    child: Center(child: CircularProgressIndicator(color: kAccent)),
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Center(child: CircularProgressIndicator(color: context.col.accent)),
                   )
                 else if (runways.isEmpty)
-                  const Padding(
-                    padding: EdgeInsets.fromLTRB(14, 0, 14, 14),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
                     child: Text('No runway data available.',
-                        style: TextStyle(color: kTextMuted, fontSize: 13)),
+                        style: TextStyle(color: context.col.textMuted, fontSize: 13)),
                   )
                 else
                   Padding(
@@ -391,16 +398,16 @@ class _AirportInfoSection extends StatelessWidget {
     );
   }
 
-  Widget _infoRow(IconData icon, String text) {
+  Widget _infoRow(BuildContext context, IconData icon, String text) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Row(
         children: [
-          Icon(icon, size: 16, color: kAccent),
+          Icon(icon, size: 16, color: context.col.accent),
           const SizedBox(width: 10),
           Expanded(
             child: Text(text,
-                style: const TextStyle(color: kTextPrimary, fontSize: 13)),
+                style: TextStyle(color: context.col.textPrimary, fontSize: 13)),
           ),
         ],
       ),
@@ -418,8 +425,8 @@ class _SubHeader extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(14, 10, 14, 8),
       child: Text(
         title.toUpperCase(),
-        style: const TextStyle(
-          color: kAccent,
+        style: TextStyle(
+          color: context.col.accent,
           fontSize: 11,
           fontWeight: FontWeight.w700,
           letterSpacing: 1.1,
@@ -453,15 +460,15 @@ class _CoordRow extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(14, 0, 14, 8),
         child: Row(
           children: [
-            const Icon(Icons.my_location_rounded, size: 16, color: kAccent),
+            Icon(Icons.my_location_rounded, size: 16, color: context.col.accent),
             const SizedBox(width: 10),
             Text(coord,
-                style: const TextStyle(
-                    color: kTextSecondary,
+                style: TextStyle(
+                    color: context.col.textSecondary,
                     fontSize: 13,
                     fontFamily: 'monospace')),
             const SizedBox(width: 8),
-            const Icon(Icons.copy_rounded, size: 12, color: kTextMuted),
+            Icon(Icons.copy_rounded, size: 12, color: context.col.textMuted),
           ],
         ),
       ),
@@ -483,14 +490,14 @@ class _NavaidRow extends StatelessWidget {
             width: 52,
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
             decoration: BoxDecoration(
-              color: kBackground,
+              color: context.col.background,
               borderRadius: BorderRadius.circular(5),
-              border: Border.all(color: kBorder),
+              border: Border.all(color: context.col.border),
             ),
             alignment: Alignment.center,
             child: Text(navaid.typeDisplay,
-                style: const TextStyle(
-                    color: kAccent,
+                style: TextStyle(
+                    color: context.col.accent,
                     fontSize: 10,
                     fontWeight: FontWeight.w800,
                     fontFamily: 'monospace')),
@@ -501,15 +508,15 @@ class _NavaidRow extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(navaid.ident,
-                    style: const TextStyle(
-                        color: kTextPrimary,
+                    style: TextStyle(
+                        color: context.col.textPrimary,
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
                         fontFamily: 'monospace')),
                 if (navaid.name.isNotEmpty)
                   Text(navaid.name,
-                      style: const TextStyle(
-                          color: kTextSecondary, fontSize: 11),
+                      style: TextStyle(
+                          color: context.col.textSecondary, fontSize: 11),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis),
               ],
@@ -519,15 +526,15 @@ class _NavaidRow extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(navaid.frequencyDisplay,
-                  style: const TextStyle(
-                      color: kTextPrimary,
+                  style: TextStyle(
+                      color: context.col.textPrimary,
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
                       fontFamily: 'monospace')),
               if (navaid.dmeFrequencyKhz != null)
                 Text(navaid.dmeFrequencyDisplay,
-                    style: const TextStyle(
-                        color: kTextMuted, fontSize: 11)),
+                    style: TextStyle(
+                        color: context.col.textMuted, fontSize: 11)),
             ],
           ),
         ],
@@ -538,11 +545,24 @@ class _NavaidRow extends StatelessWidget {
 
 // ── Frequencies Section ───────────────────────────────────────────────────────
 
+// Countries where public ATC listening is legally restricted.
+// LiveATC does not provide feeds for these countries.
+// Exported so signal_reception_card can use the same set.
+const kRestrictedCountries = {
+  'GB', 'DE', 'BE', 'FR', 'IS', 'IN', 'IT', 'NZ', 'ES',
+};
+
 class _FrequenciesSection extends StatelessWidget {
-  const _FrequenciesSection(
-      {required this.frequencies, required this.loading});
+  const _FrequenciesSection({
+    required this.frequencies,
+    required this.loading,
+    required this.icao,
+    required this.isoCountry,
+  });
   final List<Frequency> frequencies;
   final bool loading;
+  final String icao;
+  final String isoCountry;
 
   @override
   Widget build(BuildContext context) {
@@ -551,33 +571,33 @@ class _FrequenciesSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('ATC Frequencies',
+          Text('ATC Frequencies',
               style: TextStyle(
-                  color: kTextPrimary,
+                  color: context.col.textPrimary,
                   fontSize: 18,
                   fontWeight: FontWeight.w700)),
           const SizedBox(height: 12),
           if (loading)
-            const Center(
-                child: CircularProgressIndicator(color: kAccent))
+            Center(
+                child: CircularProgressIndicator(color: context.col.accent))
           else if (frequencies.isEmpty)
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: kCard,
+                color: context.col.card,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: kBorder, width: 0.5),
+                border: Border.all(color: context.col.border, width: 0.5),
               ),
-              child: const Row(
+              child: Row(
                 children: [
                   Icon(Icons.info_outline_rounded,
-                      color: kTextMuted, size: 20),
-                  SizedBox(width: 12),
+                      color: context.col.textMuted, size: 20),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: Text(
                       'No frequency data available for this airport.',
-                      style:
-                          TextStyle(color: kTextSecondary, fontSize: 14),
+                      style: TextStyle(
+                          color: context.col.textSecondary, fontSize: 14),
                     ),
                   ),
                 ],
@@ -588,6 +608,110 @@ class _FrequenciesSection extends StatelessWidget {
                   padding: const EdgeInsets.only(bottom: 8),
                   child: FrequencyCard(frequency: f),
                 )),
+        ],
+      ),
+    );
+  }
+}
+
+// ── LiveATC button ────────────────────────────────────────────────────────────
+
+class _LiveAtcButton extends StatelessWidget {
+  const _LiveAtcButton({required this.icao, required this.restricted});
+  final String icao;
+  final bool restricted;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => restricted ? _showRestrictedDialog(context) : _launch(context),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: restricted
+              ? context.col.textMuted.withAlpha(20)
+              : context.col.accent.withAlpha(25),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: restricted
+                ? context.col.border
+                : context.col.accent.withAlpha(120),
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.headphones_rounded,
+              size: 14,
+              color: restricted ? context.col.textMuted : context.col.accent,
+            ),
+            const SizedBox(width: 5),
+            Text(
+              'Listen on LiveATC.net',
+              style: TextStyle(
+                color: restricted ? context.col.textMuted : context.col.accent,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            if (restricted) ...[
+              const SizedBox(width: 4),
+              Icon(Icons.info_outline_rounded,
+                  size: 12, color: context.col.textMuted),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _launch(BuildContext context) async {
+    MetricsService.instance.trackFeature('liveatc_launched');
+    final uri = Uri.parse(
+        'https://www.liveatc.net/search/?icao=${icao.toUpperCase()}');
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } else {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: const Text('Could not open LiveATC'),
+          backgroundColor: context.col.card,
+          behavior: SnackBarBehavior.floating,
+        ));
+      }
+    }
+  }
+
+  void _showRestrictedDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: ctx.col.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Icon(Icons.gavel_rounded, color: ctx.col.accent, size: 22),
+            const SizedBox(width: 10),
+            Text('Not Available',
+                style: TextStyle(
+                    color: ctx.col.textPrimary, fontSize: 17)),
+          ],
+        ),
+        content: Text(
+          'Live ATC listening is legally restricted in this country. '
+          'LiveATC.net does not provide feeds here in accordance with local communications law.',
+          style: TextStyle(
+              color: ctx.col.textSecondary, fontSize: 14, height: 1.5),
+        ),
+        actions: [
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: ctx.col.accent),
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('OK',
+                style: TextStyle(
+                    color: Colors.black, fontWeight: FontWeight.w700)),
+          ),
         ],
       ),
     );

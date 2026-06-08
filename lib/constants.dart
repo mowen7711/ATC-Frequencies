@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+// Convenience — use context.col.* in widgets instead
+export 'theme/app_colors.dart';
+
 // Data source — OurAirports publishes daily CSVs under CC0
 const String kAirportsUrl =
     'https://davidmegginson.github.io/ourairports-data/airports.csv';
@@ -20,6 +23,36 @@ const List<String> kDefaultAirportTypes = [
 ];
 
 const double kDefaultNearbyRadiusKm = 50.0;
+
+/// Radius chip values in km for each distance unit.
+/// Miles values are exact km equivalents of 5, 10, 25, 50, 100 miles
+/// so formatRadius() rounds them to clean whole numbers.
+const List<double> kRadiiKm    = [10.0, 25.0, 50.0, 100.0, 200.0];
+const List<double> kRadiiMiles = [8.047, 16.093, 40.234, 80.467, 160.934];
+
+// ── Distance unit preference ──────────────────────────────────────────────────
+
+enum DistanceUnit { km, miles }
+
+const double _kMilesPerKm = 0.621371;
+
+/// Format a distance (internally always km) for display in the user's chosen unit.
+String formatDistance(double km, DistanceUnit unit) {
+  if (unit == DistanceUnit.miles) {
+    final mi = km * _kMilesPerKm;
+    return mi < 1 ? '${(mi * 5280).toInt()} ft' : '${mi.toStringAsFixed(1)} mi';
+  }
+  return km < 1 ? '${(km * 1000).toInt()} m' : '${km.toStringAsFixed(1)} km';
+}
+
+/// Format a radius value for the nearby chip labels.
+String formatRadius(double km, DistanceUnit unit) {
+  if (unit == DistanceUnit.miles) {
+    final mi = (km * _kMilesPerKm).round();
+    return '${mi}mi';
+  }
+  return '${km.toInt()}km';
+}
 
 // Aviation dark theme colours
 const Color kBackground = Color(0xFF0B1120);

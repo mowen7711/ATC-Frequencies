@@ -37,7 +37,7 @@ class _SearchScreenState extends State<SearchScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Search Airports'),
+        title: Text('Search Airports'),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(68),
           child: Padding(
@@ -47,13 +47,13 @@ class _SearchScreenState extends State<SearchScreen> {
               focusNode: _focusNode,
               onChanged: _onChanged,
               autofocus: false,
-              style: const TextStyle(color: kTextPrimary),
+              style: TextStyle(color: context.col.textPrimary),
               decoration: InputDecoration(
                 hintText: 'Airport name, ICAO, IATA, city…',
-                prefixIcon: const Icon(Icons.search_rounded, color: kTextMuted),
+                prefixIcon: Icon(Icons.search_rounded, color: context.col.textMuted),
                 suffixIcon: _controller.text.isNotEmpty
                     ? IconButton(
-                        icon: const Icon(Icons.clear_rounded, color: kTextMuted),
+                        icon: Icon(Icons.clear_rounded, color: context.col.textMuted),
                         onPressed: _clear,
                       )
                     : null,
@@ -65,8 +65,8 @@ class _SearchScreenState extends State<SearchScreen> {
       body: Consumer<AppProvider>(
         builder: (context, provider, _) {
           if (provider.searching) {
-            return const Center(
-              child: CircularProgressIndicator(color: kAccent),
+            return Center(
+              child: CircularProgressIndicator(color: context.col.accent),
             );
           }
 
@@ -84,7 +84,7 @@ class _SearchScreenState extends State<SearchScreen> {
           return ListView.separated(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
             itemCount: results.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 8),
+            separatorBuilder: (_, __) => SizedBox(height: 8),
             itemBuilder: (context, i) {
               final airport = results[i];
               return FutureBuilder<bool>(
@@ -124,21 +124,21 @@ class _SearchHint extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.travel_explore_rounded, size: 72, color: kTextMuted),
-            const SizedBox(height: 24),
-            const Text(
+            Icon(Icons.travel_explore_rounded, size: 72, color: context.col.textMuted),
+            SizedBox(height: 24),
+            Text(
               'Search worldwide airports',
               style: TextStyle(
-                  color: kTextPrimary,
+                  color: context.col.textPrimary,
                   fontSize: 18,
                   fontWeight: FontWeight.w600),
             ),
-            const SizedBox(height: 12),
-            const Text(
+            SizedBox(height: 12),
+            Text(
               'Try "Heathrow", "EGLL", "LHR",\nor any city name.',
               textAlign: TextAlign.center,
               style: TextStyle(
-                  color: kTextSecondary, fontSize: 14, height: 1.5),
+                  color: context.col.textSecondary, fontSize: 14, height: 1.5),
             ),
           ],
         ),
@@ -159,21 +159,21 @@ class _NoResults extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.search_off_rounded, size: 64, color: kTextMuted),
-            const SizedBox(height: 20),
+            Icon(Icons.search_off_rounded, size: 64, color: context.col.textMuted),
+            SizedBox(height: 20),
             Text(
               'No airports found for "$query"',
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                  color: kTextPrimary,
+              style: TextStyle(
+                  color: context.col.textPrimary,
                   fontSize: 16,
                   fontWeight: FontWeight.w600),
             ),
-            const SizedBox(height: 10),
-            const Text(
+            SizedBox(height: 10),
+            Text(
               'Try the ICAO code (e.g. EGLL)\nor shorten the search term.',
               textAlign: TextAlign.center,
-              style: TextStyle(color: kTextSecondary, fontSize: 13),
+              style: TextStyle(color: context.col.textSecondary, fontSize: 13),
             ),
           ],
         ),

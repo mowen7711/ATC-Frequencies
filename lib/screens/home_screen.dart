@@ -44,6 +44,7 @@ class _HomeScreenState extends State<HomeScreen> {
     _FavouritesTab(),
     NearbyScreen(),
     SearchScreen(),
+    SettingsScreen(),
   ];
 
   @override
@@ -73,6 +74,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 activeIcon: Icon(Icons.search_rounded),
                 label: 'Search',
               ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.settings_outlined),
+                activeIcon: Icon(Icons.settings_rounded),
+                label: 'Settings',
+              ),
             ],
           ),
         ],
@@ -95,22 +101,11 @@ class _FavouritesTab extends StatelessWidget {
           appBar: AppBar(
             title: Row(
               children: [
-                const Icon(Icons.radio, color: kAccent, size: 22),
+                Icon(Icons.radio, color: context.col.accent, size: 22),
                 const SizedBox(width: 10),
                 const Text('ATC Frequencies'),
               ],
             ),
-            actions: [
-              IconButton(
-                icon: const Icon(Icons.settings_outlined),
-                tooltip: 'Settings',
-                onPressed: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (_) => const SettingsScreen()),
-                ),
-              ),
-            ],
           ),
           body: CustomScrollView(
               slivers: [
@@ -119,12 +114,12 @@ class _FavouritesTab extends StatelessWidget {
 
                 // Favourites section header
                 if (favs.isNotEmpty)
-                  const SliverToBoxAdapter(
+                  SliverToBoxAdapter(
                     child: Padding(
-                      padding: EdgeInsets.fromLTRB(20, 20, 16, 8),
+                      padding: const EdgeInsets.fromLTRB(20, 20, 16, 8),
                       child: Text('FAVOURITES',
                           style: TextStyle(
-                              color: kAccent,
+                              color: context.col.accent,
                               fontSize: 11,
                               fontWeight: FontWeight.w700,
                               letterSpacing: 1.2)),
@@ -174,20 +169,20 @@ class _EmptyFavourites extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.star_outline_rounded, size: 72, color: kTextMuted),
+            Icon(Icons.star_outline_rounded, size: 72, color: context.col.textMuted),
             const SizedBox(height: 24),
-            const Text(
+            Text(
               'No favourites yet',
               style: TextStyle(
-                  color: kTextPrimary,
+                  color: context.col.textPrimary,
                   fontSize: 20,
                   fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 12),
-            const Text(
+            Text(
               'Star airports in Search or Nearby\nto pin them here for quick access.',
               textAlign: TextAlign.center,
-              style: TextStyle(color: kTextSecondary, fontSize: 14, height: 1.5),
+              style: TextStyle(color: context.col.textSecondary, fontSize: 14, height: 1.5),
             ),
           ],
         ),

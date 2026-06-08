@@ -9,6 +9,7 @@ import '../models/frequency.dart';
 import '../models/navaid.dart';
 import '../models/runway.dart';
 import 'database_service.dart';
+import 'metrics_service.dart';
 
 typedef ProgressCallback = void Function(String status, double progress);
 
@@ -43,61 +44,84 @@ class DataService {
   }
 
   Future<void> _downloadAll({required ProgressCallback onProgress}) async {
+    final overallStart = DateTime.now();
+
     // ── Step 1: airports (0–20%) ────────────────────────────────────────────
-    onProgress('Downloading airport data…', 0.0);
+    var t0 = DateTime.now();
+    onProgress('Filing flight plan (airports)', 0.0);
     final airportsCsv = await _download(
       kAirportsUrl,
-      onBytes: (r, t) => onProgress('Downloading airports…', 0.10 * r / t),
+      onBytes: (r, t) => onProgress('Filing flight plan (airports)', 0.10 * r / t),
     );
-    onProgress('Parsing airports…', 0.10);
+    onProgress('Checking NOTAMs (airports)', 0.10);
     final airports = await compute(_parseAirports, airportsCsv);
-    onProgress('Storing airports…', 0.12);
+    onProgress('Confirming route (airports)', 0.12);
     await DatabaseService.instance.insertAirportsBatch(airports,
-        onProgress: (p) => onProgress('Storing airports…', 0.12 + 0.08 * p));
+        onProgress: (p) =>
+            onProgress('Confirming route (airports)', 0.12 + 0.08 * p));
+    MetricsService.instance.trackDownloadStage('airports',
+        durationMs: DateTime.now().difference(t0).inMilliseconds,
+        success: true, bytes: airportsCsv.length);
 
     // ── Step 2: frequencies (20–40%) ────────────────────────────────────────
-    onProgress('Downloading frequency data…', 0.20);
+    t0 = DateTime.now();
+    onProgress('Requesting ATC clearance (frequencies)', 0.20);
     final freqCsv = await _download(
       kFrequenciesUrl,
-      onBytes: (r, t) =>
-          onProgress('Downloading frequencies…', 0.20 + 0.10 * r / t),
+      onBytes: (r, t) => onProgress(
+          'Requesting ATC clearance (frequencies)', 0.20 + 0.10 * r / t),
     );
-    onProgress('Parsing frequencies…', 0.30);
+    onProgress('Tuning radios (frequencies)', 0.30);
     final freqs = await compute(_parseFrequencies, freqCsv);
-    onProgress('Storing frequencies…', 0.32);
+    onProgress('Setting squelch (frequencies)', 0.32);
     await DatabaseService.instance.insertFrequenciesBatch(freqs,
-        onProgress: (p) => onProgress('Storing frequencies…', 0.32 + 0.08 * p));
+        onProgress: (p) => onProgress(
+            'Setting squelch (frequencies)', 0.32 + 0.08 * p));
+    MetricsService.instance.trackDownloadStage('frequencies',
+        durationMs: DateTime.now().difference(t0).inMilliseconds,
+        success: true, bytes: freqCsv.length);
 
     // ── Step 3: runways (40–65%) ────────────────────────────────────────────
-    onProgress('Downloading runway data…', 0.40);
+    t0 = DateTime.now();
+    onProgress('Getting ATIS (runways)', 0.40);
     final runwayCsv = await _download(
       kRunwaysUrl,
-      onBytes: (r, t) =>
-          onProgress('Downloading runways…', 0.40 + 0.12 * r / t),
+      onBytes: (r, t) => onProgress('Getting ATIS (runways)', 0.40 + 0.12 * r / t),
     );
-    onProgress('Parsing runways…', 0.52);
+    onProgress('Checking runway conditions (runways)', 0.52);
     final runways = await compute(_parseRunways, runwayCsv);
-    onProgress('Storing runways…', 0.54);
+    onProgress('Confirming departure runway (runways)', 0.54);
     await DatabaseService.instance.insertRunwaysBatch(runways,
-        onProgress: (p) => onProgress('Storing runways…', 0.54 + 0.11 * p));
+        onProgress: (p) => onProgress(
+            'Confirming departure runway (runways)', 0.54 + 0.11 * p));
+    MetricsService.instance.trackDownloadStage('runways',
+        durationMs: DateTime.now().difference(t0).inMilliseconds,
+        success: true, bytes: runwayCsv.length);
 
     // ── Step 4: navaids (65–95%) ────────────────────────────────────────────
-    onProgress('Downloading navaid data…', 0.65);
+    t0 = DateTime.now();
+    onProgress('Programming the FMS (nav aids)', 0.65);
     final navaidCsv = await _download(
       kNavaidsUrl,
-      onBytes: (r, t) =>
-          onProgress('Downloading navaids…', 0.65 + 0.15 * r / t),
+      onBytes: (r, t) => onProgress(
+          'Programming the FMS (nav aids)', 0.65 + 0.15 * r / t),
     );
-    onProgress('Parsing navaids…', 0.80);
+    onProgress('Setting ILS frequency (nav aids)', 0.80);
     final navaids = await compute(_parseNavaids, navaidCsv);
-    onProgress('Storing navaids…', 0.82);
+    onProgress('Confirming nav aids (nav aids)', 0.82);
     await DatabaseService.instance.insertNavaidsBatch(navaids,
-        onProgress: (p) => onProgress('Storing navaids…', 0.82 + 0.13 * p));
+        onProgress: (p) => onProgress(
+            'Confirming nav aids (nav aids)', 0.82 + 0.13 * p));
+    MetricsService.instance.trackDownloadStage('navaids',
+        durationMs: DateTime.now().difference(t0).inMilliseconds,
+        success: true, bytes: navaidCsv.length);
 
     // ── Step 5: save timestamp ──────────────────────────────────────────────
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt('last_update', DateTime.now().millisecondsSinceEpoch);
-    onProgress('Ready', 1.0);
+    MetricsService.instance.trackDownloadComplete(
+        totalMs: DateTime.now().difference(overallStart).inMilliseconds);
+    onProgress('Cleared for departure', 1.0);
   }
 
   Future<String> _download(

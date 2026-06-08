@@ -353,6 +353,13 @@ class DatabaseService {
     return rows.isNotEmpty;
   }
 
+  Future<List<String>> getRunwayDesignatorsForAirport(String ident) async {
+    final runways = await getRunways(ident);
+    if (runways.isEmpty) return [];
+    final r = runways[Random().nextInt(runways.length)];
+    return [r.leIdent, r.heIdent].where((s) => s.isNotEmpty).toList();
+  }
+
   Future<bool> toggleFavourite(String ident) async {
     final d = await db;
     final existing = await d.query('favourites',

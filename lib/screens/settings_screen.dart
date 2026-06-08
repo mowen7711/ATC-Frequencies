@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
 import '../constants.dart';
 import '../models/airport.dart';
 import '../providers/app_provider.dart';
+import '../providers/theme_provider.dart';
 import '../services/background_service.dart';
 import '../services/frequency_notification_service.dart';
+import '../widgets/bug_report_sheet.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -23,10 +26,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _freqLoading    = false;
   Airport? _freqAirport;
 
+  // ── App version ───────────────────────────────────────────────────────────
+  String _version = '';
+
   @override
   void initState() {
     super.initState();
     _loadState();
+    _loadVersion();
+  }
+
+  Future<void> _loadVersion() async {
+    final info = await PackageInfo.fromPlatform();
+    if (mounted) setState(() => _version = 'v${info.version}');
   }
 
   Future<void> _loadState() async {
@@ -81,7 +93,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final airport = await showModalBottomSheet<Airport>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: kSurface,
+      backgroundColor: context.col.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -103,6 +115,72 @@ class _SettingsScreenState extends State<SettingsScreen> {
       appBar: AppBar(title: const Text('Settings')),
       body: ListView(
         children: [
+          // ── Appearance ────────────────────────────────────────────────
+          _SectionHeader('Appearance'),
+          _Card(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: context.col.accent.withAlpha(25),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Icon(Icons.palette_outlined,
+                          color: context.col.accent, size: 22),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Text('Theme',
+                          style: TextStyle(
+                              color: context.col.textPrimary,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600)),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                Consumer<ThemeProvider>(
+                  builder: (context, themeProvider, _) {
+                    return Row(
+                      children: [
+                        Expanded(
+                          child: _ThemeButton(
+                            label: 'System',
+                            icon: Icons.brightness_auto_rounded,
+                            selected: themeProvider.themeMode == ThemeMode.system,
+                            onTap: () => themeProvider.setThemeMode(ThemeMode.system),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: _ThemeButton(
+                            label: 'Light',
+                            icon: Icons.light_mode_rounded,
+                            selected: themeProvider.themeMode == ThemeMode.light,
+                            onTap: () => themeProvider.setThemeMode(ThemeMode.light),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: _ThemeButton(
+                            label: 'Dark',
+                            icon: Icons.dark_mode_rounded,
+                            selected: themeProvider.themeMode == ThemeMode.dark,
+                            onTap: () => themeProvider.setThemeMode(ThemeMode.dark),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+
           // ── Nearby airport monitor ─────────────────────────────────────
           _SectionHeader('Background Monitoring'),
           _Card(
@@ -115,42 +193,42 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
                         color: _bgEnabled
-                            ? kAccent.withAlpha(25)
-                            : kTextMuted.withAlpha(20),
+                            ? context.col.accent.withAlpha(25)
+                            : context.col.textMuted.withAlpha(20),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Icon(Icons.radar_rounded,
-                          color: _bgEnabled ? kAccent : kTextMuted, size: 22),
+                          color: _bgEnabled ? context.col.accent : context.col.textMuted, size: 22),
                     ),
                     const SizedBox(width: 14),
-                    const Expanded(
+                    Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text('Nearby Airport Monitor',
                               style: TextStyle(
-                                  color: kTextPrimary,
+                                  color: context.col.textPrimary,
                                   fontSize: 15,
                                   fontWeight: FontWeight.w600)),
-                          SizedBox(height: 3),
+                          const SizedBox(height: 3),
                           Text(
                             'Persistent notification showing the nearest airports. Updates every 5 minutes.',
                             style: TextStyle(
-                                color: kTextSecondary, fontSize: 12, height: 1.4),
+                                color: context.col.textSecondary, fontSize: 12, height: 1.4),
                           ),
                         ],
                       ),
                     ),
                     const SizedBox(width: 8),
                     _bgLoading
-                        ? const SizedBox(
+                        ? SizedBox(
                             width: 24, height: 24,
                             child: CircularProgressIndicator(
-                                strokeWidth: 2, color: kAccent))
+                                strokeWidth: 2, color: context.col.accent))
                         : Switch(
                             value: _bgEnabled,
                             onChanged: _toggleBackground,
-                            activeThumbColor: kAccent,
+                            activeThumbColor: context.col.accent,
                           ),
                   ],
                 ),
@@ -179,43 +257,43 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
                         color: _freqEnabled
-                            ? kAccent.withAlpha(25)
-                            : kTextMuted.withAlpha(20),
+                            ? context.col.accent.withAlpha(25)
+                            : context.col.textMuted.withAlpha(20),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Icon(Icons.speaker_notes_rounded,
-                          color: _freqEnabled ? kAccent : kTextMuted, size: 22),
+                          color: _freqEnabled ? context.col.accent : context.col.textMuted, size: 22),
                     ),
                     const SizedBox(width: 14),
-                    const Expanded(
+                    Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text('Frequencies Notification',
                               style: TextStyle(
-                                  color: kTextPrimary,
+                                  color: context.col.textPrimary,
                                   fontSize: 15,
                                   fontWeight: FontWeight.w600)),
-                          SizedBox(height: 3),
+                          const SizedBox(height: 3),
                           Text(
                             'Pin all ATC frequencies for an airport in your notification shade. '
                             'Expand the notification to see the full list.',
                             style: TextStyle(
-                                color: kTextSecondary, fontSize: 12, height: 1.4),
+                                color: context.col.textSecondary, fontSize: 12, height: 1.4),
                           ),
                         ],
                       ),
                     ),
                     const SizedBox(width: 8),
                     _freqLoading
-                        ? const SizedBox(
+                        ? SizedBox(
                             width: 24, height: 24,
                             child: CircularProgressIndicator(
-                                strokeWidth: 2, color: kAccent))
+                                strokeWidth: 2, color: context.col.accent))
                         : Switch(
                             value: _freqEnabled,
                             onChanged: _toggleFreqNotif,
-                            activeThumbColor: kAccent,
+                            activeThumbColor: context.col.accent,
                           ),
                   ],
                 ),
@@ -231,13 +309,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
-                          color: kBackground,
+                          color: context.col.background,
                           borderRadius: BorderRadius.circular(6),
-                          border: Border.all(color: kAccent.withAlpha(100)),
+                          border: Border.all(color: context.col.accent.withAlpha(100)),
                         ),
                         child: Text(_freqAirport!.displayCode,
-                            style: const TextStyle(
-                                color: kAccent,
+                            style: TextStyle(
+                                color: context.col.accent,
                                 fontWeight: FontWeight.w700,
                                 fontSize: 12,
                                 fontFamily: 'monospace')),
@@ -245,15 +323,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text(_freqAirport!.name,
-                            style: const TextStyle(
-                                color: kTextPrimary, fontSize: 13),
+                            style: TextStyle(
+                                color: context.col.textPrimary, fontSize: 13),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis),
                       ),
                       TextButton(
                         onPressed: _pickFreqAirport,
                         style: TextButton.styleFrom(
-                          foregroundColor: kAccent,
+                          foregroundColor: context.col.accent,
                           padding: const EdgeInsets.symmetric(
                               horizontal: 8, vertical: 4),
                           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -270,18 +348,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       padding: const EdgeInsets.symmetric(
                           vertical: 10, horizontal: 12),
                       decoration: BoxDecoration(
-                        color: kBackground,
+                        color: context.col.background,
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(
-                            color: kAccent.withAlpha(60), style: BorderStyle.solid),
+                            color: context.col.accent.withAlpha(60), style: BorderStyle.solid),
                       ),
-                      child: const Row(
+                      child: Row(
                         children: [
                           Icon(Icons.add_circle_outline_rounded,
-                              color: kAccent, size: 16),
-                          SizedBox(width: 8),
+                              color: context.col.accent, size: 16),
+                          const SizedBox(width: 8),
                           Text('Select an airport',
-                              style: TextStyle(color: kAccent, fontSize: 13)),
+                              style: TextStyle(color: context.col.accent, fontSize: 13)),
                         ],
                       ),
                     ),
@@ -306,10 +384,66 @@ class _SettingsScreenState extends State<SettingsScreen> {
           // ── Location ──────────────────────────────────────────────────
           _SectionHeader('Location'),
           _Card(
-            child: _SettingRow(
-              icon: Icons.my_location_rounded,
-              label: 'Default search radius',
-              value: '${kDefaultNearbyRadiusKm.toInt()} km',
+            child: Column(
+              children: [
+                Consumer<AppProvider>(
+                  builder: (context, provider, _) => Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: Row(
+                          children: [
+                            Icon(Icons.straighten_rounded,
+                                color: context.col.accent, size: 18),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text('Distance units',
+                                  style: TextStyle(
+                                      color: context.col.textPrimary,
+                                      fontSize: 14)),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _ThemeButton(
+                              label: 'Kilometres',
+                              icon: Icons.speed_rounded,
+                              selected: provider.distanceUnit ==
+                                  DistanceUnit.km,
+                              onTap: () => provider
+                                  .setDistanceUnit(DistanceUnit.km),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: _ThemeButton(
+                              label: 'Miles',
+                              icon: Icons.speed_rounded,
+                              selected: provider.distanceUnit ==
+                                  DistanceUnit.miles,
+                              onTap: () => provider
+                                  .setDistanceUnit(DistanceUnit.miles),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const Divider(height: 1),
+                Consumer<AppProvider>(
+                  builder: (context, provider, _) => _SettingRow(
+                    icon: Icons.my_location_rounded,
+                    label: 'Default search radius',
+                    value: formatRadius(
+                        kDefaultNearbyRadiusKm, provider.distanceUnit),
+                  ),
+                ),
+              ],
             ),
           ),
 
@@ -333,23 +467,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 InkWell(
                   onTap: () {
                     context.read<AppProvider>().forceRefresh();
-                    Navigator.pop(context);
                   },
-                  child: const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                     child: Row(
                       children: [
-                        Icon(Icons.refresh_rounded, color: kAccent, size: 20),
-                        SizedBox(width: 14),
+                        Icon(Icons.refresh_rounded, color: context.col.accent, size: 20),
+                        const SizedBox(width: 14),
                         Expanded(
                           child: Text('Refresh data now',
                               style: TextStyle(
-                                  color: kAccent,
+                                  color: context.col.accent,
                                   fontSize: 14,
                                   fontWeight: FontWeight.w500)),
                         ),
                         Icon(Icons.chevron_right_rounded,
-                            color: kTextMuted, size: 18),
+                            color: context.col.textMuted, size: 18),
                       ],
                     ),
                   ),
@@ -363,10 +496,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _Card(
             child: Column(
               children: [
-                const _SettingRow(
+                _SettingRow(
                   icon: Icons.radio_rounded,
                   label: 'ATC Frequencies',
-                  value: 'v1.0.0',
+                  value: _version.isEmpty ? '—' : _version,
                 ),
                 const Divider(height: 1),
                 const _SettingRow(
@@ -384,8 +517,143 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ),
 
+          // ── How we use your data ───────────────────────────────────────
+          _SectionHeader('How We Use Your Data'),
+          _Card(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const _DataRow(
+                  icon: Icons.fingerprint_rounded,
+                  label: 'Anonymous install ID',
+                  detail: 'A random UUID generated on first launch. Cannot identify you — it has no link to your name, account, or device.',
+                ),
+                const Divider(height: 1),
+                const _DataRow(
+                  icon: Icons.language_rounded,
+                  label: 'Device locale',
+                  detail: 'e.g. "en-GB". Used to understand which regions use the app. No GPS or precise location.',
+                ),
+                const Divider(height: 1),
+                const _DataRow(
+                  icon: Icons.flight_rounded,
+                  label: 'Airports & frequencies viewed',
+                  detail: 'ICAO codes of airports you open and which frequency types you copy. No personal context is inferred.',
+                ),
+                const Divider(height: 1),
+                const _DataRow(
+                  icon: Icons.timer_outlined,
+                  label: 'Session length & app opens',
+                  detail: 'How long each session lasts and how often the app is opened. Used to measure engagement.',
+                ),
+                const Divider(height: 1),
+                const _DataRow(
+                  icon: Icons.location_city_rounded,
+                  label: 'Approximate city (from IP)',
+                  detail: 'Cloudflare detects the city your internet connection is in when you open the app. Your IP address is never stored.',
+                ),
+                const Divider(height: 1),
+                const _DataRow(
+                  icon: Icons.block_rounded,
+                  label: 'What we never collect',
+                  detail: 'Your name, email, phone number, precise GPS location, contacts, photos, or any identifiable information.',
+                  isNegative: true,
+                ),
+              ],
+            ),
+          ),
+          const _InfoTile(
+            icon: Icons.storage_rounded,
+            text: 'Data is stored securely in the EU (NeonDB) and processed via Cloudflare. It is never sold or shared with third parties.',
+          ),
+
+          // ── Found a problem ────────────────────────────────────────────
+          _SectionHeader('Feedback'),
+          _Card(
+            child: InkWell(
+              borderRadius: BorderRadius.circular(12),
+              onTap: () => showBugReportSheet(context),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                child: Row(
+                  children: [
+                    Icon(Icons.bug_report_rounded, color: context.col.accent, size: 20),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Found a problem?',
+                              style: TextStyle(
+                                  color: context.col.accent,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500)),
+                          const SizedBox(height: 2),
+                          Text('Report a bug anonymously',
+                              style: TextStyle(color: context.col.textMuted, fontSize: 12)),
+                        ],
+                      ),
+                    ),
+                    Icon(Icons.chevron_right_rounded, color: context.col.textMuted, size: 18),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          const _InfoTile(
+            icon: Icons.vibration_rounded,
+            text: 'Tip: shake your phone at any time to report a problem instantly.',
+          ),
+
           const SizedBox(height: 40),
         ],
+      ),
+    );
+  }
+}
+
+// ── Theme toggle button ───────────────────────────────────────────────────────
+
+class _ThemeButton extends StatelessWidget {
+  const _ThemeButton({
+    required this.label,
+    required this.icon,
+    required this.selected,
+    required this.onTap,
+  });
+  final String label;
+  final IconData icon;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final col = context.col;
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        decoration: BoxDecoration(
+          color: selected ? col.accent.withAlpha(25) : col.background,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: selected ? col.accent : col.border,
+            width: selected ? 1.5 : 1,
+          ),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 18, color: selected ? col.accent : col.textMuted),
+            const SizedBox(height: 4),
+            Text(label,
+                style: TextStyle(
+                    color: selected ? col.accent : col.textSecondary,
+                    fontSize: 12,
+                    fontWeight: selected ? FontWeight.w600 : FontWeight.normal)),
+          ],
+        ),
       ),
     );
   }
@@ -402,17 +670,17 @@ class _ActiveBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: kAccent.withAlpha(15),
+        color: context.col.accent.withAlpha(15),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: kAccent.withAlpha(40)),
+        border: Border.all(color: context.col.accent.withAlpha(40)),
       ),
       child: Row(
         children: [
-          const Icon(Icons.check_circle_rounded, color: kAccent, size: 16),
+          Icon(Icons.check_circle_rounded, color: context.col.accent, size: 16),
           const SizedBox(width: 8),
           Expanded(
             child: Text(text,
-                style: const TextStyle(color: kAccent, fontSize: 12)),
+                style: TextStyle(color: context.col.accent, fontSize: 12)),
           ),
         ],
       ),
@@ -452,30 +720,30 @@ class _AirportPickerState extends State<_AirportPicker> {
               child: Container(
                 width: 36, height: 4,
                 decoration: BoxDecoration(
-                  color: kBorder,
+                  color: context.col.border,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
             ),
             const SizedBox(height: 16),
-            const Text('Choose Airport for Frequencies',
+            Text('Choose Airport for Frequencies',
                 style: TextStyle(
-                    color: kTextPrimary,
+                    color: context.col.textPrimary,
                     fontSize: 18,
                     fontWeight: FontWeight.w700)),
             const SizedBox(height: 4),
-            const Text(
+            Text(
               'The full frequency list will be pinned in your notification shade.',
-              style: TextStyle(color: kTextSecondary, fontSize: 12, height: 1.4),
+              style: TextStyle(color: context.col.textSecondary, fontSize: 12, height: 1.4),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: _controller,
               autofocus: true,
-              style: const TextStyle(color: kTextPrimary),
-              decoration: const InputDecoration(
+              style: TextStyle(color: context.col.textPrimary),
+              decoration: InputDecoration(
                 hintText: 'Search by name, ICAO or IATA…',
-                prefixIcon: Icon(Icons.search_rounded, color: kTextMuted),
+                prefixIcon: Icon(Icons.search_rounded, color: context.col.textMuted),
               ),
               onChanged: (q) => context.read<AppProvider>().search(q),
             ),
@@ -484,14 +752,14 @@ class _AirportPickerState extends State<_AirportPicker> {
               child: Consumer<AppProvider>(
                 builder: (context, provider, _) {
                   if (provider.searching) {
-                    return const Center(
-                        child: CircularProgressIndicator(color: kAccent));
+                    return Center(
+                        child: CircularProgressIndicator(color: context.col.accent));
                   }
                   if (provider.searchResults.isEmpty &&
                       _controller.text.isNotEmpty) {
-                    return const Center(
+                    return Center(
                         child: Text('No airports found',
-                            style: TextStyle(color: kTextSecondary)));
+                            style: TextStyle(color: context.col.textSecondary)));
                   }
                   return ListView.separated(
                     itemCount: provider.searchResults.length,
@@ -499,33 +767,33 @@ class _AirportPickerState extends State<_AirportPicker> {
                     itemBuilder: (context, i) {
                       final airport = provider.searchResults[i];
                       return ListTile(
-                        tileColor: kBackground,
+                        tileColor: context.col.background,
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10)),
                         leading: Container(
                           padding: const EdgeInsets.symmetric(
                               horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
-                            color: kCard,
+                            color: context.col.card,
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(airport.displayCode,
-                              style: const TextStyle(
-                                  color: kAccent,
+                              style: TextStyle(
+                                  color: context.col.accent,
                                   fontWeight: FontWeight.w700,
                                   fontSize: 12,
                                   fontFamily: 'monospace')),
                         ),
                         title: Text(airport.name,
-                            style: const TextStyle(
-                                color: kTextPrimary, fontSize: 14),
+                            style: TextStyle(
+                                color: context.col.textPrimary, fontSize: 14),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis),
                         subtitle: Text(airport.locationString,
-                            style: const TextStyle(
-                                color: kTextSecondary, fontSize: 12)),
-                        trailing: const Icon(Icons.speaker_notes_rounded,
-                            color: kAccent, size: 18),
+                            style: TextStyle(
+                                color: context.col.textSecondary, fontSize: 12)),
+                        trailing: Icon(Icons.speaker_notes_rounded,
+                            color: context.col.accent, size: 18),
                         onTap: () {
                           provider.clearSearch();
                           Navigator.pop(context, airport);
@@ -556,8 +824,8 @@ class _SectionHeader extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(20, 24, 16, 8),
       child: Text(
         title.toUpperCase(),
-        style: const TextStyle(
-          color: kAccent,
+        style: TextStyle(
+          color: context.col.accent,
           fontSize: 11,
           fontWeight: FontWeight.w700,
           letterSpacing: 1.2,
@@ -577,9 +845,9 @@ class _Card extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Container(
         decoration: BoxDecoration(
-          color: kCard,
+          color: context.col.card,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: kBorder, width: 0.5),
+          border: Border.all(color: context.col.border, width: 0.5),
         ),
         padding: const EdgeInsets.all(16),
         child: child,
@@ -601,13 +869,57 @@ class _SettingRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 2),
       child: Row(
         children: [
-          Icon(icon, color: kTextMuted, size: 18),
+          Icon(icon, color: context.col.textMuted, size: 18),
           const SizedBox(width: 12),
           Expanded(
               child: Text(label,
-                  style: const TextStyle(color: kTextPrimary, fontSize: 14))),
+                  style: TextStyle(color: context.col.textPrimary, fontSize: 14))),
           Text(value,
-              style: const TextStyle(color: kTextSecondary, fontSize: 13)),
+              style: TextStyle(color: context.col.textSecondary, fontSize: 13)),
+        ],
+      ),
+    );
+  }
+}
+
+class _DataRow extends StatelessWidget {
+  const _DataRow({
+    required this.icon,
+    required this.label,
+    required this.detail,
+    this.isNegative = false,
+  });
+  final IconData icon;
+  final String label;
+  final String detail;
+  final bool isNegative;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = isNegative ? Colors.redAccent : context.col.accent;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 16, color: color),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label,
+                    style: TextStyle(
+                        color: isNegative ? Colors.redAccent : context.col.textPrimary,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600)),
+                const SizedBox(height: 3),
+                Text(detail,
+                    style: TextStyle(
+                        color: context.col.textSecondary, fontSize: 12, height: 1.4)),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -626,12 +938,12 @@ class _InfoTile extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 14, color: kTextMuted),
+          Icon(icon, size: 14, color: context.col.textMuted),
           const SizedBox(width: 8),
           Expanded(
             child: Text(text,
-                style: const TextStyle(
-                    color: kTextMuted, fontSize: 12, height: 1.5)),
+                style: TextStyle(
+                    color: context.col.textMuted, fontSize: 12, height: 1.5)),
           ),
         ],
       ),

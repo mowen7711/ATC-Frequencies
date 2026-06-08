@@ -7,7 +7,8 @@ import '../services/database_service.dart';
 import '../services/data_service.dart';
 import '../services/location_service.dart';
 
-const String _kHomeAirportKey = 'home_airport_ident';
+const String _kHomeAirportKey    = 'home_airport_ident';
+const String _kDistanceUnitKey   = 'distance_unit';
 
 enum AppState { loading, ready, error }
 
@@ -26,6 +27,37 @@ class AppProvider extends ChangeNotifier {
   // ── Background update banner ──────────────────────────────────────────────
   bool _backgroundUpdating = false;
   bool get backgroundUpdating => _backgroundUpdating;
+
+  // ── Loading screen extras ─────────────────────────────────────────────────
+  List<String> _runwayLabels = [];
+  List<String> get runwayLabels => _runwayLabels;
+
+  DateTime? _downloadStart;
+  String? get estimatedTimeRemaining {
+    if (_downloadStart == null || _loadingProgress <= 0.05) return null;
+    final elapsed =
+        DateTime.now().difference(_downloadStart!).inSeconds.toDouble();
+    if (elapsed < 3) return null;
+    final totalEst = elapsed / _loadingProgress;
+    final remaining = (totalEst - elapsed).ceil();
+    if (remaining <= 0) return null;
+    return remaining < 60 ? '~${remaining}s remaining' : '~${(remaining / 60).ceil()}m remaining';
+  }
+
+  // ── Distance unit ─────────────────────────────────────────────────────────
+  DistanceUnit _distanceUnit = DistanceUnit.km;
+  DistanceUnit get distanceUnit => _distanceUnit;
+
+  Future<void> setDistanceUnit(DistanceUnit unit) async {
+    _distanceUnit = unit;
+    // Snap the current radius to the nearest value in the new unit's array
+    final radii = unit == DistanceUnit.miles ? kRadiiMiles : kRadiiKm;
+    _nearbyRadius = radii.reduce((a, b) =>
+        (a - _nearbyRadius).abs() < (b - _nearbyRadius).abs() ? a : b);
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_kDistanceUnitKey, unit.name);
+  }
 
   // ── Home airport ─────────────────────────────────────────────────────────
   Airport? _homeAirport;
@@ -62,6 +94,14 @@ class AppProvider extends ChangeNotifier {
   // ── Init ──────────────────────────────────────────────────────────────────
 
   Future<void> init() async {
+    _downloadStart = DateTime.now();
+    // Load distance unit preference early so UI is correct immediately
+    final prefs = await SharedPreferences.getInstance();
+    final unitName = prefs.getString(_kDistanceUnitKey);
+    if (unitName != null) {
+      _distanceUnit = DistanceUnit.values.firstWhere(
+          (u) => u.name == unitName, orElse: () => DistanceUnit.km);
+    }
     try {
       await DataService.instance.ensureData(
         onProgress: (status, progress) {
@@ -70,9 +110,11 @@ class AppProvider extends ChangeNotifier {
           notifyListeners();
         },
       );
-      _state = AppState.ready;
       await loadFavourites();
       await loadHomeAirport();
+      // Small delay so the loading animation settles before swapping widgets
+      await Future.delayed(const Duration(milliseconds: 400));
+      _state = AppState.ready;
     } catch (e) {
       _state = AppState.error;
       _globalError = e.toString();
@@ -81,6 +123,14 @@ class AppProvider extends ChangeNotifier {
   }
 
   Future<void> forceRefresh() async {
+    // Capture home airport runway labels before DB is cleared
+    final prefs = await SharedPreferences.getInstance();
+    final homeIdent = prefs.getString(_kHomeAirportKey);
+    _runwayLabels = homeIdent != null
+        ? await DatabaseService.instance
+            .getRunwayDesignatorsForAirport(homeIdent)
+        : [];
+    _downloadStart = DateTime.now();
     _state = AppState.loading;
     _loadingProgress = 0;
     _loadingStatus = 'Refreshing data…';
@@ -93,8 +143,9 @@ class AppProvider extends ChangeNotifier {
           notifyListeners();
         },
       );
-      _state = AppState.ready;
       await loadFavourites();
+      await Future.delayed(const Duration(milliseconds: 400));
+      _state = AppState.ready;
     } catch (e) {
       _state = AppState.error;
       _globalError = e.toString();

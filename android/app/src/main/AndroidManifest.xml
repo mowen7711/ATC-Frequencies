@@ -63,5 +63,12 @@
             <category android:name="android.intent.category.BROWSABLE" />
             <data android:scheme="https" />
         </intent>
+        <!-- RTL-SDR driver (SDR Touch / RF Analyzer) -->
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="iqsrc" />
+        </intent>
+        <package android:name="marto.rtl_tcp_andro" />
+        <package android:name="marto.androsdr2" />
     </queries>
 </manifest>
