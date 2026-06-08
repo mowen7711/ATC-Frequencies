@@ -1,0 +1,163 @@
+{
+  "__inputs": [],
+  "__requires": [
+    { "type": "datasource", "id": "postgres",  "name": "PostgreSQL", "version": "1.0.0" },
+    { "type": "panel",      "id": "geomap",    "name": "Geomap",     "version": "" },
+    { "type": "panel",      "id": "stat",      "name": "Stat",       "version": "" },
+    { "type": "panel",      "id": "table",     "name": "Table",      "version": "" }
+  ],
+  "title": "ATC Frequencies — World Map",
+  "uid": "atcfreq-map",
+  "schemaVersion": 38,
+  "version": 1,
+  "refresh": "5m",
+  "timezone": "browser",
+  "time": { "from": "now-24h", "to": "now" },
+  "tags": ["atc-freq"],
+  "panels": [
+
+    {
+      "id": 1, "type": "stat",
+      "title": "Launches (24h)",
+      "gridPos": { "x": 0, "y": 0, "w": 4, "h": 3 },
+      "datasource": { "type": "postgres", "uid": "cfofy105jfxtsf" },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "none" },
+      "fieldConfig": { "defaults": { "color": { "mode": "fixed", "fixedColor": "blue" }, "unit": "short", "noValue": "0" } },
+      "targets": [{
+        "refId": "A", "format": "table",
+        "rawSql": "SELECT COUNT(*) AS value FROM atc_metrics WHERE measurement = 'app_event' AND tags->>'event' = 'app_open' AND ts >= NOW() - INTERVAL '24 hours'"
+      }]
+    },
+
+    {
+      "id": 2, "type": "stat",
+      "title": "Countries (24h)",
+      "gridPos": { "x": 4, "y": 0, "w": 4, "h": 3 },
+      "datasource": { "type": "postgres", "uid": "cfofy105jfxtsf" },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "none" },
+      "fieldConfig": { "defaults": { "color": { "mode": "fixed", "fixedColor": "green" }, "unit": "short", "noValue": "0" } },
+      "targets": [{
+        "refId": "A", "format": "table",
+        "rawSql": "SELECT COUNT(DISTINCT tags->>'geo_country') AS value FROM atc_metrics WHERE measurement = 'app_event' AND tags->>'event' = 'app_open' AND tags->>'geo_country' IS NOT NULL AND ts >= NOW() - INTERVAL '24 hours'"
+      }]
+    },
+
+    {
+      "id": 3, "type": "stat",
+      "title": "Unique Installs (24h)",
+      "gridPos": { "x": 8, "y": 0, "w": 4, "h": 3 },
+      "datasource": { "type": "postgres", "uid": "cfofy105jfxtsf" },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "none" },
+      "fieldConfig": { "defaults": { "color": { "mode": "fixed", "fixedColor": "orange" }, "unit": "short", "noValue": "0" } },
+      "targets": [{
+        "refId": "A", "format": "table",
+        "rawSql": "SELECT COUNT(DISTINCT install_id) AS value FROM atc_metrics WHERE measurement = 'app_event' AND tags->>'event' = 'app_open' AND ts >= NOW() - INTERVAL '24 hours'"
+      }]
+    },
+
+    {
+      "id": 4, "type": "stat",
+      "title": "Most Active Country",
+      "gridPos": { "x": 12, "y": 0, "w": 5, "h": 3 },
+      "datasource": { "type": "postgres", "uid": "cfofy105jfxtsf" },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "/^country$/" },
+        "colorMode": "background", "textMode": "value", "graphMode": "none"
+      },
+      "fieldConfig": { "defaults": { "color": { "mode": "fixed", "fixedColor": "purple" }, "noValue": "—" } },
+      "targets": [{
+        "refId": "A", "format": "table",
+        "rawSql": "SELECT tags->>'geo_country' AS country FROM atc_metrics WHERE measurement = 'app_event' AND tags->>'event' = 'app_open' AND tags->>'geo_country' IS NOT NULL AND ts >= NOW() - INTERVAL '24 hours' GROUP BY 1 ORDER BY COUNT(*) DESC LIMIT 1"
+      }]
+    },
+
+    {
+      "id": 5, "type": "geomap",
+      "title": "App Launches — Last 24 Hours",
+      "description": "City-level location from Cloudflare IP geolocation. No GPS data collected.",
+      "gridPos": { "x": 0, "y": 3, "w": 24, "h": 18 },
+      "datasource": { "type": "postgres", "uid": "cfofy105jfxtsf" },
+      "options": {
+        "view": { "id": "zero", "lat": 30, "lon": 0, "zoom": 2 },
+        "controls": { "mouseWheelZoom": true, "showZoom": true, "showAttribution": true },
+        "layers": [
+          {
+            "type": "default",
+            "name": "Basemap",
+            "config": { "showLabels": true }
+          },
+          {
+            "type": "markers",
+            "name": "Launches",
+            "config": {
+              "style": {
+                "size": { "fixed": 8, "min": 5, "max": 25, "field": "launches" },
+                "color": { "fixed": "dark-orange" },
+                "fillOpacity": 0.7,
+                "symbol": { "mode": "fixed", "fixed": "img/icons/marker/circle.svg" }
+              },
+              "showLegend": true
+            },
+            "location": { "mode": "coords", "latitude": "latitude", "longitude": "longitude" },
+            "tooltip": true
+          }
+        ],
+        "tooltip": { "mode": "details" }
+      },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "fixed", "fixedColor": "dark-orange" } },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "launches" },
+            "properties": [
+              { "id": "displayName", "value": "Launches" },
+              { "id": "custom.hideFrom", "value": { "tooltip": false, "viz": false, "legend": false } }
+            ]
+          }
+        ]
+      },
+      "targets": [{
+        "refId": "A", "format": "table",
+        "rawSql": "SELECT (tags->>'geo_lat')::float AS latitude, (tags->>'geo_lon')::float AS longitude, tags->>'geo_city' AS city, tags->>'geo_country' AS country, COUNT(*) AS launches FROM atc_metrics WHERE measurement = 'app_event' AND tags->>'event' = 'app_open' AND tags->>'geo_lat' IS NOT NULL AND tags->>'geo_lon' IS NOT NULL AND ts >= NOW() - INTERVAL '24 hours' GROUP BY 1, 2, 3, 4 ORDER BY 5 DESC"
+      }]
+    },
+
+    {
+      "id": 6, "type": "table",
+      "title": "Launches by Country — Last 24 Hours",
+      "gridPos": { "x": 0, "y": 21, "w": 10, "h": 9 },
+      "datasource": { "type": "postgres", "uid": "cfofy105jfxtsf" },
+      "options": { "sortBy": [{ "displayName": "Launches", "desc": true }] },
+      "fieldConfig": {
+        "defaults": { "custom": { "align": "auto" } },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "Launches" }, "properties": [{ "id": "custom.width", "value": 90 }] },
+          { "matcher": { "id": "byName", "options": "Country"  }, "properties": [{ "id": "custom.width", "value": 80 }] }
+        ]
+      },
+      "targets": [{
+        "refId": "A", "format": "table",
+        "rawSql": "SELECT tags->>'geo_country' AS \"Country\", tags->>'geo_region' AS \"Region\", COUNT(*) AS \"Launches\", COUNT(DISTINCT install_id) AS \"Unique Installs\" FROM atc_metrics WHERE measurement = 'app_event' AND tags->>'event' = 'app_open' AND tags->>'geo_country' IS NOT NULL AND ts >= NOW() - INTERVAL '24 hours' GROUP BY 1, 2 ORDER BY 3 DESC LIMIT 30"
+      }]
+    },
+
+    {
+      "id": 7, "type": "table",
+      "title": "Launches by City — Last 24 Hours",
+      "gridPos": { "x": 10, "y": 21, "w": 14, "h": 9 },
+      "datasource": { "type": "postgres", "uid": "cfofy105jfxtsf" },
+      "options": { "sortBy": [{ "displayName": "Launches", "desc": true }] },
+      "fieldConfig": {
+        "defaults": { "custom": { "align": "auto" } },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "Launches" }, "properties": [{ "id": "custom.width", "value": 90 }] }
+        ]
+      },
+      "targets": [{
+        "refId": "A", "format": "table",
+        "rawSql": "SELECT tags->>'geo_city' AS \"City\", tags->>'geo_region' AS \"Region\", tags->>'geo_country' AS \"Country\", COUNT(*) AS \"Launches\", COUNT(DISTINCT install_id) AS \"Unique Installs\" FROM atc_metrics WHERE measurement = 'app_event' AND tags->>'event' = 'app_open' AND tags->>'geo_city' IS NOT NULL AND ts >= NOW() - INTERVAL '24 hours' GROUP BY 1, 2, 3 ORDER BY 4 DESC LIMIT 30"
+      }]
+    }
+
+  ]
+}

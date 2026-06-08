@@ -1,0 +1,223 @@
+{
+  "__inputs": [],
+  "__requires": [
+    { "type": "datasource", "id": "postgres",  "name": "PostgreSQL", "version": "1.0.0" },
+    { "type": "panel",      "id": "table",     "name": "Table",      "version": "" },
+    { "type": "panel",      "id": "stat",      "name": "Stat",       "version": "" },
+    { "type": "panel",      "id": "timeseries","name": "Time series","version": "" },
+    { "type": "panel",      "id": "piechart",  "name": "Pie chart",  "version": "" }
+  ],
+  "title": "ATC Frequencies — Bug Reports",
+  "uid": "atcfreq-bugs",
+  "schemaVersion": 38,
+  "version": 1,
+  "refresh": "1m",
+  "timezone": "browser",
+  "time": { "from": "now-30d", "to": "now" },
+  "tags": ["atc-freq"],
+  "panels": [
+
+    {
+      "id": 1, "type": "stat",
+      "title": "Total Reports",
+      "gridPos": { "x": 0, "y": 0, "w": 4, "h": 4 },
+      "datasource": { "type": "postgres", "uid": "cfofy105jfxtsf" },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "none" },
+      "fieldConfig": { "defaults": { "color": { "mode": "fixed", "fixedColor": "red" }, "unit": "short", "noValue": "0" } },
+      "targets": [{
+        "refId": "A", "format": "table",
+        "rawSql": "SELECT COUNT(*) AS value FROM atc_metrics WHERE measurement = 'bug_report' AND $__timeFilter(ts)"
+      }]
+    },
+
+    {
+      "id": 2, "type": "stat",
+      "title": "Reports Today",
+      "gridPos": { "x": 4, "y": 0, "w": 4, "h": 4 },
+      "datasource": { "type": "postgres", "uid": "cfofy105jfxtsf" },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "none" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short", "noValue": "0",
+          "thresholds": { "mode": "absolute", "steps": [
+            { "color": "green", "value": null },
+            { "color": "orange", "value": 1 },
+            { "color": "red", "value": 3 }
+          ]},
+          "color": { "mode": "thresholds" }
+        }
+      },
+      "targets": [{
+        "refId": "A", "format": "table",
+        "rawSql": "SELECT COUNT(*) AS value FROM atc_metrics WHERE measurement = 'bug_report' AND ts >= NOW() - INTERVAL '24 hours'"
+      }]
+    },
+
+    {
+      "id": 3, "type": "stat",
+      "title": "Unique Reporters",
+      "gridPos": { "x": 8, "y": 0, "w": 4, "h": 4 },
+      "datasource": { "type": "postgres", "uid": "cfofy105jfxtsf" },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "none" },
+      "fieldConfig": { "defaults": { "color": { "mode": "fixed", "fixedColor": "orange" }, "unit": "short", "noValue": "0" } },
+      "targets": [{
+        "refId": "A", "format": "table",
+        "rawSql": "SELECT COUNT(DISTINCT install_id) AS value FROM atc_metrics WHERE measurement = 'bug_report' AND $__timeFilter(ts)"
+      }]
+    },
+
+    {
+      "id": 4, "type": "stat",
+      "title": "Most Affected Version",
+      "gridPos": { "x": 12, "y": 0, "w": 5, "h": 4 },
+      "datasource": { "type": "postgres", "uid": "cfofy105jfxtsf" },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "/^version$/" },
+        "colorMode": "background", "textMode": "value", "graphMode": "none"
+      },
+      "fieldConfig": { "defaults": { "color": { "mode": "fixed", "fixedColor": "purple" }, "noValue": "—" } },
+      "targets": [{
+        "refId": "A", "format": "table",
+        "rawSql": "SELECT fields->>'app_version' AS version FROM atc_metrics WHERE measurement = 'bug_report' AND $__timeFilter(ts) GROUP BY 1 ORDER BY COUNT(*) DESC LIMIT 1"
+      }]
+    },
+
+    {
+      "id": 5, "type": "stat",
+      "title": "Avg Reports / Day",
+      "gridPos": { "x": 17, "y": 0, "w": 4, "h": 4 },
+      "datasource": { "type": "postgres", "uid": "cfofy105jfxtsf" },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "none" },
+      "fieldConfig": { "defaults": { "color": { "mode": "fixed", "fixedColor": "blue" }, "unit": "short", "decimals": 1, "noValue": "0" } },
+      "targets": [{
+        "refId": "A", "format": "table",
+        "rawSql": "SELECT ROUND(COUNT(*)::numeric / NULLIF(EXTRACT(DAY FROM NOW() - MIN(ts)), 0), 1) AS value FROM atc_metrics WHERE measurement = 'bug_report' AND $__timeFilter(ts)"
+      }]
+    },
+
+    {
+      "id": 6, "type": "timeseries",
+      "title": "Bug Reports Over Time",
+      "gridPos": { "x": 0, "y": 4, "w": 16, "h": 8 },
+      "datasource": { "type": "postgres", "uid": "cfofy105jfxtsf" },
+      "options": { "tooltip": { "mode": "single" } },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "fixed", "fixedColor": "red" },
+          "custom": { "lineWidth": 2, "fillOpacity": 20, "drawStyle": "bars", "barAlignment": 0 }
+        }
+      },
+      "targets": [{
+        "refId": "A", "format": "time_series",
+        "rawSql": "SELECT $__timeGroupAlias(ts,$__interval), COUNT(*) AS \"Reports\" FROM atc_metrics WHERE measurement = 'bug_report' AND $__timeFilter(ts) GROUP BY 1 ORDER BY 1"
+      }]
+    },
+
+    {
+      "id": 7, "type": "piechart",
+      "title": "Reports by App Version",
+      "gridPos": { "x": 16, "y": 4, "w": 8, "h": 8 },
+      "datasource": { "type": "postgres", "uid": "cfofy105jfxtsf" },
+      "options": {
+        "pieType": "donut",
+        "tooltip": { "mode": "single" },
+        "legend": { "displayMode": "table", "placement": "right", "values": ["percent", "value"] }
+      },
+      "targets": [{
+        "refId": "A", "format": "table",
+        "rawSql": "SELECT fields->>'app_version' AS \"Version\", COUNT(*) AS \"Reports\" FROM atc_metrics WHERE measurement = 'bug_report' AND $__timeFilter(ts) GROUP BY 1 ORDER BY 2 DESC"
+      }]
+    },
+
+    {
+      "id": 8, "type": "table",
+      "title": "All Bug Reports",
+      "description": "Full text of every report. Sort by time to see the latest first.",
+      "gridPos": { "x": 0, "y": 12, "w": 24, "h": 16 },
+      "datasource": { "type": "postgres", "uid": "cfofy105jfxtsf" },
+      "options": {
+        "sortBy": [{ "displayName": "Time", "desc": true }],
+        "cellHeight": "lg",
+        "footer": { "show": true, "reducer": ["count"], "countRows": true }
+      },
+      "fieldConfig": {
+        "defaults": { "custom": { "align": "left", "wrap": true } },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Time" },
+            "properties": [
+              { "id": "custom.width", "value": 160 },
+              { "id": "unit", "value": "dateTimeAsLocal" }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Description" },
+            "properties": [{ "id": "custom.minWidth", "value": 300 }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Context" },
+            "properties": [{ "id": "custom.minWidth", "value": 200 }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Version" },
+            "properties": [{ "id": "custom.width", "value": 90 }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Country" },
+            "properties": [{ "id": "custom.width", "value": 90 }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "City" },
+            "properties": [{ "id": "custom.width", "value": 130 }]
+          }
+        ]
+      },
+      "targets": [{
+        "refId": "A", "format": "table",
+        "rawSql": "SELECT ts AS \"Time\", fields->>'description' AS \"Description\", COALESCE(fields->>'context', '—') AS \"Context\", fields->>'app_version' AS \"Version\", COALESCE(tags->>'geo_country', '—') AS \"Country\", COALESCE(tags->>'geo_city', '—') AS \"City\" FROM atc_metrics WHERE measurement = 'bug_report' AND $__timeFilter(ts) ORDER BY ts DESC"
+      }]
+    },
+
+    {
+      "id": 9, "type": "table",
+      "title": "Repeat Reporters",
+      "description": "Anonymous install IDs that have submitted more than one report — may indicate persistent issues.",
+      "gridPos": { "x": 0, "y": 28, "w": 12, "h": 8 },
+      "datasource": { "type": "postgres", "uid": "cfofy105jfxtsf" },
+      "options": { "sortBy": [{ "displayName": "Reports", "desc": true }] },
+      "fieldConfig": {
+        "defaults": { "custom": { "align": "auto" } },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "Reports" }, "properties": [{ "id": "custom.width", "value": 80 }] },
+          { "matcher": { "id": "byName", "options": "First Seen" }, "properties": [{ "id": "unit", "value": "dateTimeAsLocal" }, { "id": "custom.width", "value": 160 }] },
+          { "matcher": { "id": "byName", "options": "Last Seen"  }, "properties": [{ "id": "unit", "value": "dateTimeAsLocal" }, { "id": "custom.width", "value": 160 }] }
+        ]
+      },
+      "targets": [{
+        "refId": "A", "format": "table",
+        "rawSql": "SELECT CONCAT(LEFT(install_id, 8), '…') AS \"Install\", COUNT(*) AS \"Reports\", MIN(ts) AS \"First Seen\", MAX(ts) AS \"Last Seen\", COALESCE(MAX(tags->>'geo_country'), '—') AS \"Country\" FROM atc_metrics WHERE measurement = 'bug_report' AND $__timeFilter(ts) GROUP BY install_id HAVING COUNT(*) > 1 ORDER BY 2 DESC"
+      }]
+    },
+
+    {
+      "id": 10, "type": "table",
+      "title": "Reports Alongside App Opens (same install, same day)",
+      "description": "Cross-references bug reports with active usage — confirms whether the reporter was actually using the app.",
+      "gridPos": { "x": 12, "y": 28, "w": 12, "h": 8 },
+      "datasource": { "type": "postgres", "uid": "cfofy105jfxtsf" },
+      "options": { "sortBy": [{ "displayName": "Report Time", "desc": true }] },
+      "fieldConfig": {
+        "defaults": { "custom": { "align": "auto", "wrap": true } },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "Report Time" }, "properties": [{ "id": "unit", "value": "dateTimeAsLocal" }, { "id": "custom.width", "value": 160 }] },
+          { "matcher": { "id": "byName", "options": "Opens That Day" }, "properties": [{ "id": "custom.width", "value": 120 }] }
+        ]
+      },
+      "targets": [{
+        "refId": "A", "format": "table",
+        "rawSql": "SELECT b.ts AS \"Report Time\", LEFT(b.fields->>'description', 80) AS \"Description\", b.fields->>'app_version' AS \"Version\", COUNT(a.id) AS \"Opens That Day\" FROM atc_metrics b LEFT JOIN atc_metrics a ON a.install_id = b.install_id AND a.measurement = 'app_event' AND a.tags->>'event' = 'app_open' AND DATE_TRUNC('day', a.ts) = DATE_TRUNC('day', b.ts) WHERE b.measurement = 'bug_report' AND $__timeFilter(b.ts) GROUP BY b.ts, b.fields, b.tags ORDER BY b.ts DESC LIMIT 20"
+      }]
+    }
+
+  ]
+}
