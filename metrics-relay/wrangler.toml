@@ -1,0 +1,13 @@
+name                   = "atc-freq-metrics"
+main                   = "index.js"
+compatibility_date     = "2024-09-23"
+compatibility_flags    = ["nodejs_compat"]
+
+[placement]
+mode = "smart"
+
+# Set secrets — never stored in this file:
+#   npx wrangler secret put NEON_DATABASE_URL
+#
+# Value: your Neon pooled connection string, e.g.
+#   postgres://user:pass@ep-xxx.eu-central-1.aws.neon.tech/dbname?sslmode=require
