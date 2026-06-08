@@ -65,21 +65,21 @@ models/
   runway.dart           — Runway.fromCsvRow()
 
 providers/
-  app_provider.dart     — AppState, favourites, search, nearby, homeAirport, distanceUnit, runwayLabels, ETA
+  app_provider.dart     — AppState, favourites, search, nearby, homeAirport, distanceUnit, hideNoFreq, needsDisclaimer
   theme_provider.dart   — ThemeMode persisted in SharedPreferences (key: theme_mode)
 
 screens/
-  splash_screen.dart    — Intro animation (plane + radio arcs), calls onDone() callback
+  splash_screen.dart    — Intro animation (plane + radio arcs + tagline), calls onDone() callback
   loading_screen.dart   — Landing animation (plane on runway), progress bar, humorous messages
   home_screen.dart      — IndexedStack bottom nav: Favourites(0), Nearby(1), Search(2), Settings(3)
-  airport_detail_screen.dart — SliverAppBar, map, frequencies, signal reception, airport info
-  nearby_screen.dart    — GPS nearby with radius chips (km or miles), map toggle
-  search_screen.dart    — Real-time search with debounce
-  settings_screen.dart  — Appearance, monitoring, data, distance unit, data transparency, feedback
+  airport_detail_screen.dart — SliverAppBar, map, frequencies + disclaimer banner, signal reception, airport info
+  nearby_screen.dart    — GPS nearby with radius chips + freq filter chip (km or miles), map toggle
+  search_screen.dart    — Real-time search with debounce + freq filter chip
+  settings_screen.dart  — Appearance, monitoring, data, distance unit, data transparency, feedback, disclaimer
 
 services/
   data_service.dart     — ensureData() / forceRefresh(), humorous progress messages
-  database_service.dart — SQLite CRUD, batch inserts, Haversine nearby, runway designators
+  database_service.dart — SQLite CRUD, batch inserts, Haversine nearby, requireFrequencies filter
   background_service.dart — flutter_foreground_task, nearby airport notification
   frequency_notification_service.dart — Pinned frequency list notification
   location_service.dart — Geolocator wrapper → LocationResult
@@ -95,6 +95,8 @@ widgets/
   airport_tile.dart     — Airport list item with distance, type strip, favourite button
   frequency_card.dart   — Frequency row with type badge, copy + SDR listen button
   bug_report_sheet.dart — Bottom sheet bug report (shake or button triggered)
+  disclaimer_banner.dart — Persistent amber banner on every ATC frequencies section
+  disclaimer_dialog.dart — First-launch modal with checkbox + I Agree button; exports kDisclaimerText
   home_airport_card.dart — Home airport banner in Favourites tab
   runway_card.dart      — Runway info with ILS chip
   signal_reception_card.dart — VHF reception estimate + LiveATC suggestion
@@ -135,13 +137,21 @@ Single ChangeNotifier for all app state.
 **SharedPreferences keys:**
 - `home_airport_ident` — ICAO string
 - `distance_unit` — `"km"` or `"miles"`
+- `hide_no_freq` — bool, filter out airports with no frequency data
+- `disclaimer_agreed` — bool, set true once user accepts the first-launch disclaimer
 
 **Key getters:**
 - `state` — AppState.loading / ready / error
 - `distanceUnit` — DistanceUnit enum (km/miles)
 - `nearbyRadius` — double (always km internally)
+- `hideNoFreq` — bool, whether "With frequencies only" filter is active
+- `needsDisclaimer` — bool, true if disclaimer has not yet been accepted
 - `runwayLabels` — List<String> shown on loading screen during refresh
 - `estimatedTimeRemaining` — String? ETA during download
+
+**Key methods:**
+- `toggleHideNoFreq()` — flips the filter, persists, re-runs active search/nearby query
+- `acceptDisclaimer()` — sets `disclaimer_agreed`, clears `needsDisclaimer`
 
 **Distance unit:** All internal calculations are km. `setDistanceUnit()` snaps `nearbyRadius` to nearest value in the appropriate radius array (`kRadiiKm` or `kRadiiMiles`).
 
@@ -360,9 +370,45 @@ Frequency display notification: pins full frequency list for a selected airport 
 
 ## Splash / loading screens
 
-**Splash** (`SplashScreen`): 3 AnimationControllers. Sequence: fade in (500ms) → hold (400ms) → plane flies up + scales down (600ms) → outro fade (300ms). Calls `onDone()` callback; `_Root` removes it from the Stack overlay.
+**Splash** (`SplashScreen`): 3 AnimationControllers. Sequence: fade in (500ms) → hold (900ms) → plane flies up + scales down (600ms) → outro fade (300ms). Calls `onDone()` callback; `_Root` removes it from the Stack overlay.
+
+Tagline "Worldwide ATC frequencies, updated weekly" displayed below "FREQUENCIES" in muted text, fades in with the rest of the content.
 
 **Loading** (`LoadingScreen`): Plane landing on runway. Progress bar is one-directional (`max(_displayProgress, target)`). `_ArcsPainter`, `_RunwayPainter`, `_GlideSlopePainter` all accept accent colour as constructor parameter (not from context — they're CustomPainters).
+
+---
+
+## Disclaimer system
+
+First-launch modal dialog (`widgets/disclaimer_dialog.dart`):
+- Shown once after splash clears and app is ready, triggered via `WidgetsBinding.addPostFrameCallback` in `_Root`
+- `PopScope(canPop: false)` — cannot be dismissed with back button
+- Requires checkbox tick before "I Agree" button is enabled
+- Acceptance stored in SharedPreferences key `disclaimer_agreed`
+- `_disclaimerTriggered` flag in `_RootState` prevents re-triggering within a session
+
+Persistent banner (`widgets/disclaimer_banner.dart`):
+- Amber-tinted strip shown above the frequency list on every airport detail screen
+- Text: "For recreational use only — always verify frequencies with official sources before flight."
+- `kDisclaimerText` constant in `disclaimer_dialog.dart` is the full legal text, imported by settings_screen.dart via `show kDisclaimerText`
+
+Settings → Disclaimer section shows the full `kDisclaimerText` permanently.
+
+---
+
+## Frequency filter ("With frequencies only")
+
+Filter chip on both Search and Nearby screens. When active:
+- `AppProvider.hideNoFreq = true`
+- `DatabaseService.searchAirports()` and `getNearbyAirports()` add:
+  `AND EXISTS (SELECT 1 FROM frequencies WHERE airport_ref = airports.id)`
+- Re-queries immediately on toggle; re-queries when returning to a screen with an active search/nearby result
+- Persisted in SharedPreferences key `hide_no_freq`
+
+Contribute link below every frequency list:
+- "Missing a frequency? Add it at ourairports.com"
+- Links to `https://ourairports.com/airports/{ICAO}/` in external browser
+- Shown both when frequencies exist (subtle, below list) and when empty (below empty state card)
 
 ---
 

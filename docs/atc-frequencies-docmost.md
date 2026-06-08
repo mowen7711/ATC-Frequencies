@@ -29,8 +29,9 @@
 17. [Animations](#18-animations)
 18. [Android Configuration](#19-android-configuration)
 19. [Build & Deployment](#20-build--deployment)
-20. [Known Issues & Gotchas](#21-known-issues--gotchas)
-21. [Future Considerations](#22-future-considerations)
+20. [Known Issues & Gotchas](#20-known-issues--gotchas)
+21. [Disclaimer & Frequency Filter](#21-disclaimer--frequency-filter)
+22. [Future Considerations](#22-future-considerations)
 
 ---
 
@@ -43,6 +44,7 @@ ATC Frequencies is an Android application that provides pilots, aviation enthusi
 | Feature | Description |
 |---------|-------------|
 | Airport search | Search ~70,000 airports by name, ICAO code, IATA code, or city |
+| Frequency filter | "With frequencies only" chip on Search and Nearby — hides airports with no data |
 | Favourites | Star airports for quick access |
 | Home airport | Pin one airport as home — shown prominently on the Favourites tab |
 | Nearby airports | GPS-based discovery with adjustable radius (km or miles) |
@@ -57,6 +59,8 @@ ATC Frequencies is an Android application that provides pilots, aviation enthusi
 | Dark / light / system theme | Full theme support with colour-accurate light mode |
 | Background monitor | Persistent notification showing nearest 3 airports, updates every 5 minutes |
 | Frequency notification | Pin all frequencies for a chosen airport in the notification shade |
+| Disclaimer | First-launch agreement dialog + persistent banner on all frequency pages |
+| Contribute link | "Missing a frequency?" link to OurAirports below every frequency list |
 | Bug reporting | Shake phone or use button in Settings to submit anonymous report |
 | Analytics | Anonymous usage metrics → Cloudflare Worker → NeonDB → Grafana |
 
@@ -121,6 +125,8 @@ The app uses the `provider` package with two ChangeNotifiers:
 - Nearby airports list + filter state
 - Home airport
 - Distance unit preference (km / miles)
+- Frequency filter (`hideNoFreq`) — hides airports with no frequency data
+- Disclaimer state (`needsDisclaimer`) — whether first-launch dialog needs showing
 - Loading progress, status messages, ETA, runway labels
 
 **ThemeProvider** — Stores `ThemeMode` (system / light / dark) only.
@@ -330,11 +336,13 @@ Shown on every app launch while the main content loads. Three animation controll
 
 | Controller | Duration | What it does |
 |------------|----------|-------------|
-| `_introCtrl` | 500ms | Fades in the plane image and "ATC FREQUENCIES" text |
+| `_introCtrl` | 500ms | Fades in the plane image, "ATC FREQUENCIES" text, and tagline |
 | `_flyCtrl` | 600ms | Translates plane upward (0 → −1.6× screen height), scales down (1.0 → 0.7) |
 | `_outroCtrl` | 300ms | Fades out everything |
 
-Sequence timing: intro (500ms) → hold (400ms) → fly starts → 200ms into fly, outro begins.
+Sequence timing: intro (500ms) → hold (900ms) → fly starts → 200ms into fly, outro begins.
+
+Tagline "Worldwide ATC frequencies, updated weekly" is shown below "FREQUENCIES" in muted text (same fade-in as the rest of the content, flies up with the plane).
 
 When complete, calls `widget.onDone()` — the `_Root` StatefulWidget removes the splash overlay from its Stack.
 
@@ -373,7 +381,7 @@ The `HomeScreen` accepts `initialTab` parameter for deep-linking from notificati
 
 **Content sections (in order):**
 1. Map (OpenStreetMap, 200px height, zoom 12)
-2. ATC Frequencies (frequency cards with copy + SDR button)
+2. ATC Frequencies heading + `DisclaimerBanner` + frequency cards + contribute link
 3. Signal Reception Card
 4. Airport Information (type, location, elevation, coordinates, runways, navaids)
 
@@ -381,11 +389,13 @@ The `HomeScreen` accepts `initialTab` parameter for deep-linking from notificati
 
 ### Nearby Screen (`screens/nearby_screen.dart`)
 
-Shows GPS-located airports within a configurable radius. Chips for radius selection use `kRadiiKm` or `kRadiiMiles` arrays based on the user's distance unit preference.
+Shows GPS-located airports within a configurable radius. The filter bar has two rows:
+1. Radius chips — `kRadiiKm` or `kRadiiMiles` based on distance unit preference
+2. "With frequencies only" chip — filters out airports with no frequency data (`AppProvider.hideNoFreq`)
+
+Filter bar `preferredSize` height is 108px to accommodate both rows.
 
 Map view toggles a full `FlutterMap` with markers for each nearby airport, zoom level calculated from radius.
-
-Type filter allows showing/hiding large, medium, small airports.
 
 Empty states: "Location not available", "No airports found", "GPS permission denied" each have distinct UI.
 
@@ -400,6 +410,7 @@ Sections:
 6. **About** — Version (read from PackageInfo), coverage stats
 7. **How We Use Your Data** — Full data transparency breakdown with 6 rows
 8. **Feedback** — "Found a problem?" button, shake gesture tip
+9. **Disclaimer** — Full `kDisclaimerText` always visible; imported from `disclaimer_dialog.dart`
 
 ---
 
@@ -425,7 +436,9 @@ Singleton wrapping sqflite. All operations are async.
 
 **`getRunwayDesignatorsForAirport(String ident)`** — Returns `[leIdent, heIdent]` from a randomly selected runway. Used by `AppProvider.forceRefresh()` to show home airport runway numbers on the loading screen during updates.
 
-**`getNearbyAirports(lat, lon, radiusKm, types, limit)`** — SQL bounding box pre-filter, then Haversine in Dart. Returns `List<(Airport, double)>` sorted by distance.
+**`getNearbyAirports(lat, lon, radiusKm, types, limit, requireFrequencies)`** — SQL bounding box pre-filter, then Haversine in Dart. Returns `List<(Airport, double)>` sorted by distance. When `requireFrequencies: true`, adds `AND EXISTS (SELECT 1 FROM frequencies WHERE airport_ref = airports.id)`.
+
+**`searchAirports(query, limit, types, requireFrequencies)`** — Same `EXISTS` subquery applied when `requireFrequencies: true`.
 
 ### TerrainService (`services/terrain_service.dart`)
 
@@ -539,6 +552,23 @@ For **Beyond Range / Out of Range:**
 - Grey label only (no percentage or progress bar)
 - Explanatory text
 - Humorous amber LiveATC suggestion banner (tappable, 5 rotating messages)
+
+### DisclaimerBanner (`widgets/disclaimer_banner.dart`)
+
+Persistent amber-tinted strip shown above every airport's ATC frequency list. Always visible — not dismissable. Contains a warning icon and the text "For recreational use only — always verify frequencies with official sources before flight."
+
+Styling: `context.col.accent.withAlpha(15)` background, `context.col.accent.withAlpha(60)` border, 8px border radius.
+
+### DisclaimerDialog (`widgets/disclaimer_dialog.dart`)
+
+First-launch modal dialog. Key behaviours:
+- `PopScope(canPop: false)` — back button disabled until agreed
+- `barrierDismissible: false` — cannot be tapped away
+- Checkbox must be ticked before "I Agree" `FilledButton` is enabled
+- On agree: calls `provider.acceptDisclaimer()` then `Navigator.pop()`
+- Triggered from `_RootState` via `addPostFrameCallback` once `provider.state == ready`, `!_splashVisible`, `provider.needsDisclaimer`, and `!_disclaimerTriggered`
+
+Exports `kDisclaimerText` — a `const String` with the full legal disclaimer used by both the dialog and Settings → Disclaimer section.
 
 ### BugReportSheet (`widgets/bug_report_sheet.dart`)
 
@@ -1047,11 +1077,11 @@ String formatRadius(double km, DistanceUnit unit)
 3 `AnimationController`s:
 
 ```
-0ms    500ms    900ms    1100ms   1500ms
+0ms    500ms    1400ms   1600ms   1900ms
 ├──────┤        │        │        │
 │intro │        │        │        │
-(fade in plane + text)   │        │
-         400ms hold      │        │
+(fade in plane + text + tagline)  │
+         900ms hold      │        │
                 ├────────┤        │
                 │  fly   │        │
                 (plane moves up)  │
@@ -1186,7 +1216,54 @@ Run `metrics-relay/schema.sql` in the NeonDB SQL Editor at console.neon.tech.
 
 ---
 
-## 21. Future Considerations
+## 21. Disclaimer & Frequency Filter
+
+### Disclaimer System
+
+The app includes a two-layer disclaimer covering recreational-use liability:
+
+**Layer 1 — First-launch dialog** (`widgets/disclaimer_dialog.dart`):
+- Shown once after splash clears and app is in `AppState.ready`
+- `PopScope(canPop: false)` — cannot be dismissed with back button
+- User must tick a checkbox before the "I Agree" button becomes active
+- On acceptance: `AppProvider.acceptDisclaimer()` sets SharedPreferences key `disclaimer_agreed = true`
+- `_RootState._disclaimerTriggered` prevents re-triggering within a session
+
+**Layer 2 — Persistent banner** (`widgets/disclaimer_banner.dart`):
+- Amber-tinted strip above the frequency list on every airport detail page
+- Always visible, not dismissable
+- Short form: "For recreational use only — always verify frequencies with official sources before flight."
+
+**Layer 3 — Settings** (`settings_screen.dart`):
+- Full `kDisclaimerText` always visible in Settings → Disclaimer section
+- Imported via `show kDisclaimerText` from `disclaimer_dialog.dart`
+
+### Frequency Filter
+
+"With frequencies only" filter chip on both Search and Nearby screens.
+
+**Implementation:**
+- `AppProvider.hideNoFreq` (bool) — toggled by `toggleHideNoFreq()`
+- Persisted as SharedPreferences key `hide_no_freq`
+- On toggle: re-runs the active search query or nearby query immediately
+- `DatabaseService.searchAirports()` and `getNearbyAirports()` accept `requireFrequencies: bool`
+- When true, appends: `AND EXISTS (SELECT 1 FROM frequencies WHERE airport_ref = airports.id)`
+
+**UI:**
+- Chip matches existing radius chip style (amber when active, card colour when inactive)
+- Nearby: second row below radius chips, `preferredSize` height 108px
+- Search: below the search text field, `preferredSize` height 108px
+
+### Contribute Link
+
+Below every airport's frequency list (both when frequencies exist and when the list is empty):
+- Text: "Missing a frequency? Add it at ourairports.com"
+- Taps open `https://ourairports.com/airports/{ICAO}/` in the external browser
+- Links directly to the correct airport's page on OurAirports where users can submit edits
+
+---
+
+## 22. Future Considerations
 
 ### RTL-SDR Native Integration (13–19 weeks)
 
