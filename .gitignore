@@ -44,5 +44,10 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
+# Signing credentials — never commit
+android/key.properties
+*.jks
+*.keystore
+
 # Cloudflare Worker dependencies
 metrics-relay/node_modules/
