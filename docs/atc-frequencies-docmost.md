@@ -828,6 +828,10 @@ Panels: Total Reports (stat), Reports Today (stat, red if ≥3), Unique Reporter
 ### map.json — World Map
 Panels: Launches 24h (stat), Countries 24h (stat), Unique Installs 24h (stat), Most Active Country (stat), World Geomap (dots sized by launch count), Launches by Country table, Launches by City table.
 
+### play-store.json — Play Store Metrics
+Populated by the GCS sync script (`metrics-relay/play-store-sync.js`) once Play Console is verified.
+Panels: Total Installs (stat), Active Devices (stat), Store Listing Views (stat), Install Conversion Rate % (stat), Daily Device Installs/Uninstalls (timeseries), Active Devices Over Time (timeseries), Store Listing Visitors vs Acquisitions (timeseries), Current Average Rating (stat), Rating Over Time (timeseries), Top 20 Countries by Installs (barchart), Top 20 Countries by Store Views (barchart), Install Data Table (table).
+
 ---
 
 ## 12. SDR Integration
@@ -1131,9 +1135,13 @@ keyPassword=...
 
 `build.gradle.kts` reads this file for `signingConfigs.release`. R8 minification enabled. Proguard rules in `android/app/proguard-rules.pro` include Flutter plugin keep rules and Play Core dontwarn entries.
 
+### Network Security
+
+`android/app/src/main/res/xml/network_security_config.xml` — explicitly blocks all cleartext HTTP at the OS level. Referenced from `AndroidManifest.xml` via `android:networkSecurityConfig="@xml/network_security_config"`. All traffic (OurAirports CSV downloads, metrics relay, map tiles) uses HTTPS only.
+
 ### App Icon
 
-`assets/icon/icon.png` — 1024×1024 master. Adaptive icon: dark navy background (`#0B1120`), amber plane foreground. Generated via `flutter_launcher_icons` package.
+`assets/icon/icon.png` — 1024×1024 master. Clean top-down plane silhouette with swept wings and winglets, no engine nacelles. Amber gradient on dark navy. Adaptive icon: dark navy background (`#0B1120`), amber plane foreground. Generated via `flutter_launcher_icons` package from `assets/icon/icon.svg`.
 
 ---
 
@@ -1182,13 +1190,30 @@ npx wrangler secret put NEON_DATABASE_URL
 
 ### NeonDB Schema Setup (one-time)
 
-Run `metrics-relay/schema.sql` in the NeonDB SQL Editor at console.neon.tech.
+Run both schema files in the NeonDB SQL Editor at console.neon.tech:
+
+1. `metrics-relay/schema.sql` — in-app metrics table (`atc_metrics`)
+2. `metrics-relay/play-store-schema.sql` — Play Store tables (`ps_installs`, `ps_ratings`, `ps_store_performance`, `ps_sync_log`)
+
+### Play Store GCS Sync (run daily once Play Console is verified)
+
+```bash
+cd metrics-relay
+npm install
+export GOOGLE_APPLICATION_CREDENTIALS=/path/to/service-account.json
+export GCS_BUCKET=pubsite_prod_XXXXXXXX
+export NEON_DATABASE_URL=postgres://...
+npm run sync
+```
+
+The sync script (`play-store-sync.js`) downloads daily CSV exports from the Play Console GCS bucket and upserts them into NeonDB. It tracks processed files in `ps_sync_log` to prevent double-importing. Supports installs, ratings, and store performance reports.
 
 ### Play Store
 
 - Privacy policy: https://mowen7711.github.io/ATC-Frequencies/privacy-policy.html
-- Feature graphic: `docs/feature-graphic.svg` (1024×500px)
+- Feature graphic: `docs/feature-graphic.svg` (1024×500px — export to PNG before upload)
 - App bundle: `build/app/outputs/bundle/release/app-release.aab`
+- Note: Flutter CLI reports a misleading "strip debug symbols" error — the bundle is valid; Gradle completes successfully
 
 ---
 
@@ -1283,10 +1308,15 @@ Full native integration without requiring SDR Touch:
 
 ### Play Store Submission Checklist
 
-- [ ] Screenshots (minimum 2 phone screenshots)
-- [ ] Play Console account created and verified
-- [ ] App bundle signed with release keystore
-- [ ] Privacy policy URL verified live
+- [x] Screenshots taken
+- [x] App bundle signed with release keystore (`build/app/outputs/bundle/release/app-release.aab`)
+- [x] Privacy policy URL live: `https://mowen7711.github.io/ATC-Frequencies/privacy-policy.html`
+- [x] App icon redesigned — clean silhouette with winglets, no engine nacelles
+- [x] Network security config — cleartext HTTP blocked at OS level
+- [ ] Play Console account verified (waiting for Google)
+- [ ] Feature graphic exported to PNG (1024×500) from `docs/feature-graphic.svg`
+- [ ] Store listing filled in (text already written)
 - [ ] Content rating questionnaire completed
-- [ ] Target audience declaration
+- [ ] Data safety form completed
+- [ ] Price set to £0.99
 - [ ] Data safety form completed (references analytics section of this doc)

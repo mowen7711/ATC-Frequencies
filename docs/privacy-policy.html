@@ -136,35 +136,60 @@
     </ul>
     <p>None of this data leaves your device.</p>
 
-    <h2>5. Third-Party Services</h2>
+    <h2>5. Anonymous Usage Metrics</h2>
     <p>
-      The app does not integrate any analytics, advertising, crash reporting, or tracking SDKs.
-      Map tiles are loaded from
-      <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>
-      when viewing the airport map; this is a standard tile request and does not include any
-      personal data beyond a routine IP address connection.
+      The app collects anonymous, non-personal usage data to help improve the product. Specifically:
+    </p>
+    <ul>
+      <li>A randomly generated install identifier (UUID) — created on first launch, stored only on your device. It is not linked to your name, email, Google account, or any other identity.</li>
+      <li>Your device's language/region setting (e.g. "en-GB") — used to understand which languages are most common.</li>
+      <li>App version number.</li>
+      <li>Events such as app opened, screen viewed, airport viewed, frequency copied, and session duration.</li>
+    </ul>
+    <p>
+      This data is sent to a Cloudflare Worker relay, which automatically adds an approximate
+      country and city derived from your IP address (the IP address itself is never stored).
+      Events are then written to a private database operated by 4T Technologies.
+    </p>
+    <p style="margin-top:0.6rem;">
+      <strong>What is not collected:</strong> your name, email, precise GPS location, device
+      identifiers (IMEI, advertising ID), or any information that could identify you as an individual.
+      The app does not use advertising SDKs or share data with third parties for marketing purposes.
+    </p>
+    <p style="margin-top:0.6rem;">
+      Analytics are disabled entirely when running a development build of the app.
     </p>
 
-    <h2>6. Children's Privacy</h2>
+    <h2>6. Third-Party Services</h2>
+    <p>The app connects to the following external services:</p>
+    <ul>
+      <li><strong>OurAirports.com</strong> — downloads airport and frequency data on first launch and weekly thereafter. No personal data is sent.</li>
+      <li><strong>OpenStreetMap</strong> — map tiles loaded when viewing an airport map. Standard tile request; no personal data beyond a routine IP connection.</li>
+      <li><strong>Cloudflare Workers</strong> — anonymous metrics relay (see Section 5).</li>
+      <li><strong>LiveATC.net</strong> — optional link-out to live ATC audio streams, opened in your browser. Subject to LiveATC's own privacy policy.</li>
+    </ul>
+    <p>The app does not integrate advertising networks, social login, or tracking SDKs.</p>
+
+    <h2>7. Children's Privacy</h2>
     <p>
       This app does not knowingly collect any information from children under the age of 13,
       or any other age. No personal data is collected from any user.
     </p>
 
-    <h2>7. Changes to This Policy</h2>
+    <h2>8. Changes to This Policy</h2>
     <p>
       If this policy changes materially, the updated version will be posted at this URL with a
       revised date shown in the footer below.
     </p>
 
-    <h2>8. Contact</h2>
+    <h2>9. Contact</h2>
     <p>
       Questions about this privacy policy can be directed to:<br>
       <a href="mailto:mark@4t-technologies.com">mark@4t-technologies.com</a>
     </p>
 
     <footer>
-      <p>4T Technologies &nbsp;·&nbsp; Last updated: 10 May 2026</p>
+      <p>4T Technologies &nbsp;·&nbsp; Last updated: 8 June 2026</p>
     </footer>
   </div>
 </body>
