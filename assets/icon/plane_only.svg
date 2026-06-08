@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <radialGradient id="planeGrad" cx="50%" cy="30%" r="70%">
+      <stop offset="0%" stop-color="#FFC926"/>
+      <stop offset="100%" stop-color="#E8A000"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Fuselage -->
+  <path d="
+    M 512 148
+    C 522 148, 544 175, 552 228
+    C 560 278, 563 338, 563 405
+    C 563 478, 561 558, 557 635
+    C 553 700, 545 756, 534 808
+    C 526 842, 519 868, 512 882
+    C 505 868, 498 842, 490 808
+    C 479 756, 471 700, 467 635
+    C 463 558, 461 478, 461 405
+    C 461 338, 464 278, 472 228
+    C 480 175, 502 148, 512 148 Z
+  " fill="url(#planeGrad)"/>
+
+  <!-- Right wing -->
+  <path d="
+    M 558 398
+    C 620 402, 730 432, 878 508
+    L 866 562
+    C 780 532, 672 506, 562 468
+    C 562 468, 560 460, 558 445 Z
+  " fill="url(#planeGrad)"/>
+
+  <!-- Left wing -->
+  <path d="
+    M 466 398
+    C 404 402, 294 432, 146 508
+    L 158 562
+    C 244 532, 352 506, 462 468
+    C 462 468, 464 460, 466 445 Z
+  " fill="url(#planeGrad)"/>
+
+  <!-- Right stabilizer -->
+  <path d="
+    M 508 806
+    C 580 808, 658 822, 710 842
+    L 700 864
+    C 650 848, 578 836, 504 834 Z
+  " fill="url(#planeGrad)"/>
+
+  <!-- Left stabilizer -->
+  <path d="
+    M 516 806
+    C 444 808, 366 822, 314 842
+    L 324 864
+    C 374 848, 446 836, 520 834 Z
+  " fill="url(#planeGrad)"/>
+
+  <!-- Cockpit windows -->
+  <ellipse cx="512" cy="248" rx="16" ry="22"
+           fill="#0B1120" opacity="0.55"/>
+  <ellipse cx="512" cy="285" rx="13" ry="12"
+           fill="#0B1120" opacity="0.30"/>
+
+  <!-- Wing root highlight -->
+  <line x1="512" y1="390" x2="512" y2="475"
+        stroke="#FFC926" stroke-width="5" stroke-opacity="0.4"/>
+</svg>
