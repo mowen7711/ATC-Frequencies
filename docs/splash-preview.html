@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Splash Preview</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: #111;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+
+    /* Phone frame */
+    .phone {
+      width: 320px;
+      height: 640px;
+      background: #0B1120;
+      border-radius: 40px;
+      border: 8px solid #222;
+      overflow: hidden;
+      position: relative;
+      box-shadow: 0 0 60px rgba(0,0,0,0.8);
+    }
+
+    .screen {
+      width: 100%;
+      height: 100%;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      animation: screenFadeOut 0.4s ease-in 2.3s forwards;
+    }
+
+    /* Radio arcs */
+    .arcs {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -40%);
+      opacity: 0;
+      animation: arcsFadeIn 0.5s ease-out 0.6s forwards;
+    }
+
+    .arcs svg {
+      overflow: visible;
+    }
+
+    /* Plane */
+    .plane {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -55%);
+      width: 160px;
+      height: 160px;
+      opacity: 0;
+      animation:
+        planeFadeIn 0.7s ease-out 0s forwards,
+        planeFly 0.8s ease-in 1.5s forwards;
+    }
+
+    /* Text */
+    .label {
+      position: absolute;
+      bottom: 22%;
+      left: 0; right: 0;
+      text-align: center;
+      opacity: 0;
+      animation: planeFadeIn 0.7s ease-out 0.1s forwards;
+    }
+
+    .label .atc {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 28px;
+      font-weight: 900;
+      color: #FFB300;
+      letter-spacing: 10px;
+    }
+
+    .label .freq {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      color: #e8edf5;
+      letter-spacing: 5px;
+      margin-top: 2px;
+    }
+
+    /* Replay button */
+    .replay {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #FFB300;
+      color: #000;
+      border: none;
+      border-radius: 20px;
+      padding: 8px 20px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      opacity: 0;
+      animation: arcsFadeIn 0.3s ease-out 2.8s forwards;
+    }
+
+    /* After animation — show mock home screen */
+    .home {
+      position: absolute;
+      inset: 0;
+      background: #0B1120;
+      opacity: 0;
+      animation: arcsFadeIn 0.3s ease-out 2.7s forwards;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .home-bar {
+      padding: 16px 16px 8px;
+      font-family: -apple-system, sans-serif;
+      font-size: 18px;
+      font-weight: 700;
+      color: #e8edf5;
+      border-bottom: 0.5px solid #1e2d4a;
+    }
+
+    .home-content {
+      flex: 1;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .mock-card {
+      background: #152038;
+      border-radius: 10px;
+      border: 0.5px solid #1e2d4a;
+      padding: 12px 14px;
+    }
+
+    .mock-card .airport {
+      font-family: monospace;
+      font-size: 15px;
+      font-weight: 700;
+      color: #e8edf5;
+    }
+
+    .mock-card .name {
+      font-family: -apple-system, sans-serif;
+      font-size: 11px;
+      color: #7a8faa;
+      margin-top: 2px;
+    }
+
+    .mock-freq {
+      display: flex;
+      gap: 6px;
+      margin-top: 8px;
+    }
+
+    .mock-chip {
+      font-family: monospace;
+      font-size: 10px;
+      padding: 3px 7px;
+      border-radius: 4px;
+    }
+
+    .twr { background: rgba(239,83,80,0.15); color: #ef5350; border: 0.5px solid rgba(239,83,80,0.3); }
+    .gnd { background: rgba(255,213,79,0.15); color: #ffd54f; border: 0.5px solid rgba(255,213,79,0.3); }
+    .atis { background: rgba(100,181,246,0.15); color: #64b5f6; border: 0.5px solid rgba(100,181,246,0.3); }
+
+    .home-nav {
+      height: 52px;
+      background: #101828;
+      border-top: 0.5px solid #1e2d4a;
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+    }
+
+    .nav-item {
+      font-family: -apple-system, sans-serif;
+      font-size: 10px;
+      color: #7a8faa;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+    }
+
+    .nav-item.active { color: #FFB300; }
+    .nav-icon { font-size: 18px; }
+
+    @keyframes planeFadeIn {
+      to { opacity: 1; }
+    }
+
+    @keyframes arcsFadeIn {
+      to { opacity: 1; }
+    }
+
+    @keyframes planeFly {
+      0%   { transform: translate(-50%, -55%) scale(1);   opacity: 1; }
+      100% { transform: translate(-50%, -310%) scale(0.5); opacity: 0.2; }
+    }
+
+    @keyframes screenFadeOut {
+      to { opacity: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="phone">
+
+    <!-- Splash screen layer -->
+    <div class="screen">
+      <!-- Arcs -->
+      <div class="arcs">
+        <svg width="300" height="160" viewBox="-150 -10 300 160">
+          <path d="M -80 10 A 80 80 0 0 1 80 10" stroke="#FFB300" stroke-width="2" fill="none" stroke-opacity="0.12" stroke-linecap="round"/>
+          <path d="M -120 10 A 120 120 0 0 1 120 10" stroke="#FFB300" stroke-width="2.5" fill="none" stroke-opacity="0.18" stroke-linecap="round"/>
+          <path d="M -165 10 A 165 165 0 0 1 165 10" stroke="#FFB300" stroke-width="2.5" fill="none" stroke-opacity="0.24" stroke-linecap="round"/>
+        </svg>
+      </div>
+
+      <!-- Plane SVG inline -->
+      <div class="plane">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="160" height="160">
+          <defs>
+            <radialGradient id="pg" cx="50%" cy="30%" r="70%">
+              <stop offset="0%" stop-color="#FFC926"/>
+              <stop offset="100%" stop-color="#E8A000"/>
+            </radialGradient>
+          </defs>
+          <path d="M512 148 C522 148,544 175,552 228 C560 278,563 338,563 405 C563 478,561 558,557 635 C553 700,545 756,534 808 C526 842,519 868,512 882 C505 868,498 842,490 808 C479 756,471 700,467 635 C463 558,461 478,461 405 C461 338,464 278,472 228 C480 175,502 148,512 148Z" fill="url(#pg)"/>
+          <path d="M558 398 C620 402,730 432,878 508 L866 562 C780 532,672 506,562 468 C562 468,560 460,558 445Z" fill="url(#pg)"/>
+          <path d="M466 398 C404 402,294 432,146 508 L158 562 C244 532,352 506,462 468 C462 468,464 460,466 445Z" fill="url(#pg)"/>
+          <path d="M508 806 C580 808,658 822,710 842 L700 864 C650 848,578 836,504 834Z" fill="url(#pg)"/>
+          <path d="M516 806 C444 808,366 822,314 842 L324 864 C374 848,446 836,520 834Z" fill="url(#pg)"/>
+          <ellipse cx="512" cy="248" rx="16" ry="22" fill="#0B1120" opacity="0.55"/>
+          <ellipse cx="512" cy="285" rx="13" ry="12" fill="#0B1120" opacity="0.30"/>
+        </svg>
+      </div>
+
+      <!-- Label -->
+      <div class="label">
+        <div class="atc">ATC</div>
+        <div class="freq">FREQUENCIES</div>
+      </div>
+    </div>
+
+    <!-- Mock home screen (appears after splash) -->
+    <div class="home">
+      <div class="home-bar">Favourites</div>
+      <div class="home-content">
+        <div class="mock-card">
+          <div class="airport">EGCC</div>
+          <div class="name">Manchester Airport</div>
+          <div class="mock-freq">
+            <span class="mock-chip twr">TWR 118.625</span>
+            <span class="mock-chip gnd">GND 121.850</span>
+          </div>
+        </div>
+        <div class="mock-card">
+          <div class="airport">EGLL</div>
+          <div class="name">London Heathrow</div>
+          <div class="mock-freq">
+            <span class="mock-chip twr">TWR 118.500</span>
+            <span class="mock-chip atis">ATIS 128.075</span>
+          </div>
+        </div>
+        <div class="mock-card">
+          <div class="airport">EGPH</div>
+          <div class="name">Edinburgh Airport</div>
+          <div class="mock-freq">
+            <span class="mock-chip twr">TWR 118.700</span>
+            <span class="mock-chip gnd">GND 121.750</span>
+          </div>
+        </div>
+      </div>
+      <div class="home-nav">
+        <div class="nav-item active"><span class="nav-icon">★</span>Favourites</div>
+        <div class="nav-item"><span class="nav-icon">📍</span>Nearby</div>
+        <div class="nav-item"><span class="nav-icon">🔍</span>Search</div>
+      </div>
+    </div>
+
+    <button class="replay" onclick="replay()">↺ Replay</button>
+
+    <script>
+      function replay() {
+        const animated = document.querySelectorAll('.screen, .arcs, .plane, .label, .home, .replay');
+        animated.forEach(el => {
+          el.style.animation = 'none';
+          el.offsetHeight; // force reflow
+          el.style.animation = '';
+        });
+      }
+    </script>
+  </div>
+</body>
+</html>
