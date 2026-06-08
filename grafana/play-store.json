@@ -60,7 +60,7 @@
     },
 
     {
-      "datasource": { "type": "postgres", "uid": "${DS_NEONDB}" },
+      "datasource": { "type": "postgres", "uid": "cfofy105jfxtsf" },
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "thresholds" },
@@ -78,7 +78,7 @@
       },
       "targets": [
         {
-          "datasource": { "type": "postgres", "uid": "${DS_NEONDB}" },
+          "datasource": { "type": "postgres", "uid": "cfofy105jfxtsf" },
           "rawQuery": true,
           "rawSql": "SELECT COALESCE(SUM(daily_device_installs), 0) AS value FROM ps_installs",
           "format": "table",
@@ -90,7 +90,7 @@
     },
 
     {
-      "datasource": { "type": "postgres", "uid": "${DS_NEONDB}" },
+      "datasource": { "type": "postgres", "uid": "cfofy105jfxtsf" },
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "thresholds" },
@@ -108,7 +108,7 @@
       },
       "targets": [
         {
-          "datasource": { "type": "postgres", "uid": "${DS_NEONDB}" },
+          "datasource": { "type": "postgres", "uid": "cfofy105jfxtsf" },
           "rawQuery": true,
           "rawSql": "SELECT COALESCE(MAX(active_device_installs), 0) AS value FROM ps_installs WHERE date = (SELECT MAX(date) FROM ps_installs)",
           "format": "table",
@@ -120,7 +120,7 @@
     },
 
     {
-      "datasource": { "type": "postgres", "uid": "${DS_NEONDB}" },
+      "datasource": { "type": "postgres", "uid": "cfofy105jfxtsf" },
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "thresholds" },
@@ -138,7 +138,7 @@
       },
       "targets": [
         {
-          "datasource": { "type": "postgres", "uid": "${DS_NEONDB}" },
+          "datasource": { "type": "postgres", "uid": "cfofy105jfxtsf" },
           "rawQuery": true,
           "rawSql": "SELECT COALESCE(SUM(store_listing_visitors), 0) AS value FROM ps_store_performance WHERE $__timeFilter(date::timestamptz)",
           "format": "table",
@@ -150,7 +150,7 @@
     },
 
     {
-      "datasource": { "type": "postgres", "uid": "${DS_NEONDB}" },
+      "datasource": { "type": "postgres", "uid": "cfofy105jfxtsf" },
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "thresholds" },
@@ -175,7 +175,7 @@
       },
       "targets": [
         {
-          "datasource": { "type": "postgres", "uid": "${DS_NEONDB}" },
+          "datasource": { "type": "postgres", "uid": "cfofy105jfxtsf" },
           "rawQuery": true,
           "rawSql": "SELECT CASE WHEN SUM(store_listing_visitors) > 0 THEN ROUND(100.0 * SUM(store_listing_acquisitions) / SUM(store_listing_visitors), 1) ELSE 0 END AS value FROM ps_store_performance WHERE $__timeFilter(date::timestamptz)",
           "format": "table",
@@ -195,7 +195,7 @@
     },
 
     {
-      "datasource": { "type": "postgres", "uid": "${DS_NEONDB}" },
+      "datasource": { "type": "postgres", "uid": "cfofy105jfxtsf" },
       "fieldConfig": {
         "defaults": { "unit": "short", "custom": { "lineWidth": 2, "fillOpacity": 10 } },
         "overrides": [
@@ -207,7 +207,7 @@
       "options": { "tooltip": { "mode": "multi" } },
       "targets": [
         {
-          "datasource": { "type": "postgres", "uid": "${DS_NEONDB}" },
+          "datasource": { "type": "postgres", "uid": "cfofy105jfxtsf" },
           "rawQuery": true,
           "rawSql": "SELECT date AS time, SUM(daily_device_installs) AS \"Installs\", SUM(daily_device_uninstalls) AS \"Uninstalls\" FROM ps_installs WHERE $__timeFilter(date::timestamptz) GROUP BY date ORDER BY date",
           "format": "time_series",
@@ -219,7 +219,7 @@
     },
 
     {
-      "datasource": { "type": "postgres", "uid": "${DS_NEONDB}" },
+      "datasource": { "type": "postgres", "uid": "cfofy105jfxtsf" },
       "fieldConfig": {
         "defaults": { "unit": "short", "custom": { "lineWidth": 2, "fillOpacity": 10 } }
       },
@@ -228,7 +228,7 @@
       "options": { "tooltip": { "mode": "multi" } },
       "targets": [
         {
-          "datasource": { "type": "postgres", "uid": "${DS_NEONDB}" },
+          "datasource": { "type": "postgres", "uid": "cfofy105jfxtsf" },
           "rawQuery": true,
           "rawSql": "SELECT date AS time, SUM(active_device_installs) AS \"Active Devices\" FROM ps_installs WHERE $__timeFilter(date::timestamptz) GROUP BY date ORDER BY date",
           "format": "time_series",
@@ -248,7 +248,7 @@
     },
 
     {
-      "datasource": { "type": "postgres", "uid": "${DS_NEONDB}" },
+      "datasource": { "type": "postgres", "uid": "cfofy105jfxtsf" },
       "fieldConfig": {
         "defaults": { "unit": "short", "custom": { "lineWidth": 2, "fillOpacity": 10 } },
         "overrides": [
@@ -260,7 +260,7 @@
       "options": { "tooltip": { "mode": "multi" } },
       "targets": [
         {
-          "datasource": { "type": "postgres", "uid": "${DS_NEONDB}" },
+          "datasource": { "type": "postgres", "uid": "cfofy105jfxtsf" },
           "rawQuery": true,
           "rawSql": "SELECT date AS time, SUM(store_listing_visitors) AS \"Visitors\", SUM(store_listing_acquisitions) AS \"Acquisitions\" FROM ps_store_performance WHERE $__timeFilter(date::timestamptz) GROUP BY date ORDER BY date",
           "format": "time_series",
@@ -280,7 +280,7 @@
     },
 
     {
-      "datasource": { "type": "postgres", "uid": "${DS_NEONDB}" },
+      "datasource": { "type": "postgres", "uid": "cfofy105jfxtsf" },
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "thresholds" },
@@ -306,7 +306,7 @@
       },
       "targets": [
         {
-          "datasource": { "type": "postgres", "uid": "${DS_NEONDB}" },
+          "datasource": { "type": "postgres", "uid": "cfofy105jfxtsf" },
           "rawQuery": true,
           "rawSql": "SELECT COALESCE(AVG(total_average_rating), 0) AS value FROM ps_ratings WHERE date = (SELECT MAX(date) FROM ps_ratings)",
           "format": "table",
@@ -318,7 +318,7 @@
     },
 
     {
-      "datasource": { "type": "postgres", "uid": "${DS_NEONDB}" },
+      "datasource": { "type": "postgres", "uid": "cfofy105jfxtsf" },
       "fieldConfig": {
         "defaults": { "unit": "short", "decimals": 2, "min": 1, "max": 5, "custom": { "lineWidth": 2 } }
       },
@@ -326,7 +326,7 @@
       "id": 9,
       "targets": [
         {
-          "datasource": { "type": "postgres", "uid": "${DS_NEONDB}" },
+          "datasource": { "type": "postgres", "uid": "cfofy105jfxtsf" },
           "rawQuery": true,
           "rawSql": "SELECT date AS time, AVG(total_average_rating) AS \"Average Rating\" FROM ps_ratings WHERE $__timeFilter(date::timestamptz) GROUP BY date ORDER BY date",
           "format": "time_series",
@@ -346,7 +346,7 @@
     },
 
     {
-      "datasource": { "type": "postgres", "uid": "${DS_NEONDB}" },
+      "datasource": { "type": "postgres", "uid": "cfofy105jfxtsf" },
       "fieldConfig": {
         "defaults": { "unit": "short" }
       },
@@ -358,7 +358,7 @@
       },
       "targets": [
         {
-          "datasource": { "type": "postgres", "uid": "${DS_NEONDB}" },
+          "datasource": { "type": "postgres", "uid": "cfofy105jfxtsf" },
           "rawQuery": true,
           "rawSql": "SELECT country, SUM(daily_device_installs) AS \"Installs\" FROM ps_installs WHERE $__timeFilter(date::timestamptz) GROUP BY country ORDER BY 2 DESC LIMIT 20",
           "format": "table",
@@ -370,7 +370,7 @@
     },
 
     {
-      "datasource": { "type": "postgres", "uid": "${DS_NEONDB}" },
+      "datasource": { "type": "postgres", "uid": "cfofy105jfxtsf" },
       "fieldConfig": {
         "defaults": { "unit": "short" }
       },
@@ -382,7 +382,7 @@
       },
       "targets": [
         {
-          "datasource": { "type": "postgres", "uid": "${DS_NEONDB}" },
+          "datasource": { "type": "postgres", "uid": "cfofy105jfxtsf" },
           "rawQuery": true,
           "rawSql": "SELECT country, SUM(store_listing_visitors) AS \"Visitors\" FROM ps_store_performance WHERE $__timeFilter(date::timestamptz) GROUP BY country ORDER BY 2 DESC LIMIT 20",
           "format": "table",
@@ -402,7 +402,7 @@
     },
 
     {
-      "datasource": { "type": "postgres", "uid": "${DS_NEONDB}" },
+      "datasource": { "type": "postgres", "uid": "cfofy105jfxtsf" },
       "fieldConfig": {
         "defaults": { "unit": "short" }
       },
@@ -413,7 +413,7 @@
       },
       "targets": [
         {
-          "datasource": { "type": "postgres", "uid": "${DS_NEONDB}" },
+          "datasource": { "type": "postgres", "uid": "cfofy105jfxtsf" },
           "rawQuery": true,
           "rawSql": "SELECT date AS \"Date\", country AS \"Country\", daily_device_installs AS \"Installs\", daily_device_uninstalls AS \"Uninstalls\", active_device_installs AS \"Active Devices\", total_user_installs AS \"Total Users\" FROM ps_installs WHERE $__timeFilter(date::timestamptz) ORDER BY date DESC, daily_device_installs DESC LIMIT 200",
           "format": "table",
