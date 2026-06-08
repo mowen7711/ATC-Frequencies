@@ -255,6 +255,25 @@ class DatabaseService {
     return rows.map(Airport.fromMap).toList();
   }
 
+  // ── Frequency search ─────────────────────────────────────────────────────
+
+  /// Returns airports that have a frequency matching [freqQuery].
+  /// e.g. "121.5" → all airports with a 121.500 MHz entry (GUARD).
+  Future<List<Airport>> searchAirportsByFrequency(String freqQuery,
+      {int limit = 50}) async {
+    final d = await db;
+    final pattern = '${freqQuery.trim()}%';
+    final rows = await d.rawQuery('''
+      SELECT DISTINCT airports.*
+      FROM airports
+      JOIN frequencies ON frequencies.airport_ref = airports.id
+      WHERE CAST(frequencies.frequency_mhz AS TEXT) LIKE ?
+      ORDER BY airports.name ASC
+      LIMIT ?
+    ''', [pattern, limit]);
+    return rows.map(Airport.fromMap).toList();
+  }
+
   // ── Nearby ────────────────────────────────────────────────────────────────
 
   Future<List<(Airport, double)>> getNearbyAirports(

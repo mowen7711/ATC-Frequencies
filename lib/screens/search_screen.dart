@@ -53,7 +53,7 @@ class _SearchScreenState extends State<SearchScreen> {
                     autofocus: false,
                     style: TextStyle(color: context.col.textPrimary),
                     decoration: InputDecoration(
-                      hintText: 'Airport name, ICAO, IATA, city…',
+                      hintText: 'Airport name, ICAO, IATA, city, or frequency…',
                       prefixIcon: Icon(Icons.search_rounded, color: context.col.textMuted),
                       suffixIcon: _controller.text.isNotEmpty
                           ? IconButton(
@@ -90,15 +90,27 @@ class _SearchScreenState extends State<SearchScreen> {
           }
 
           if (results.isEmpty) {
-            return _NoResults(query: query);
+            return _NoResults(
+                query: query, isFrequency: provider.isFrequencySearch);
           }
 
           return ListView.separated(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-            itemCount: results.length,
+            padding: EdgeInsets.fromLTRB(16, provider.isFrequencySearch ? 0 : 12, 16, 24),
+            itemCount: results.length + (provider.isFrequencySearch ? 1 : 0),
             separatorBuilder: (_, __) => SizedBox(height: 8),
             itemBuilder: (context, i) {
-              final airport = results[i];
+              if (provider.isFrequencySearch && i == 0) {
+                return Padding(
+                  padding: const EdgeInsets.fromLTRB(4, 12, 4, 4),
+                  child: Text(
+                    '${results.length} airport${results.length == 1 ? '' : 's'} with a ${_controller.text.trim()} MHz frequency',
+                    style: TextStyle(
+                        color: context.col.textSecondary,
+                        fontSize: 13),
+                  ),
+                );
+              }
+              final airport = results[provider.isFrequencySearch ? i - 1 : i];
               return FutureBuilder<bool>(
                 future: provider.isFavourite(airport.ident),
                 builder: (context, snap) {
@@ -191,7 +203,7 @@ class _SearchHint extends StatelessWidget {
             ),
             SizedBox(height: 12),
             Text(
-              'Try "Heathrow", "EGLL", "LHR",\nor any city name.',
+              'Search by name, ICAO, IATA or city.\nOr type a frequency like 121.5 to find\nall airports using that frequency.',
               textAlign: TextAlign.center,
               style: TextStyle(
                   color: context.col.textSecondary, fontSize: 14, height: 1.5),
@@ -204,8 +216,9 @@ class _SearchHint extends StatelessWidget {
 }
 
 class _NoResults extends StatelessWidget {
-  const _NoResults({required this.query});
+  const _NoResults({required this.query, required this.isFrequency});
   final String query;
+  final bool isFrequency;
 
   @override
   Widget build(BuildContext context) {
@@ -218,7 +231,9 @@ class _NoResults extends StatelessWidget {
             Icon(Icons.search_off_rounded, size: 64, color: context.col.textMuted),
             SizedBox(height: 20),
             Text(
-              'No airports found for "$query"',
+              isFrequency
+                  ? 'No airports found with a $query MHz frequency'
+                  : 'No airports found for "$query"',
               textAlign: TextAlign.center,
               style: TextStyle(
                   color: context.col.textPrimary,
@@ -227,7 +242,9 @@ class _NoResults extends StatelessWidget {
             ),
             SizedBox(height: 10),
             Text(
-              'Try the ICAO code (e.g. EGLL)\nor shorten the search term.',
+              isFrequency
+                  ? 'Check the frequency is correct,\ne.g. 118.1 or 121.500'
+                  : 'Try the ICAO code (e.g. EGLL)\nor shorten the search term.',
               textAlign: TextAlign.center,
               style: TextStyle(color: context.col.textSecondary, fontSize: 13),
             ),

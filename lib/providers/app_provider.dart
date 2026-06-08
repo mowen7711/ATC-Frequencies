@@ -72,9 +72,15 @@ class AppProvider extends ChangeNotifier {
   // ── Search ────────────────────────────────────────────────────────────────
   List<Airport> _searchResults = [];
   bool _searching = false;
+  bool _isFrequencySearch = false;
   String _lastQuery = '';
   List<Airport> get searchResults => _searchResults;
   bool get searching => _searching;
+  bool get isFrequencySearch => _isFrequencySearch;
+
+  /// Returns true if [query] looks like a VHF frequency (e.g. "118", "121.5").
+  static bool looksLikeFrequency(String query) =>
+      RegExp(r'^\d{2,3}(\.\d{0,3})?$').hasMatch(query.trim());
 
   // ── Disclaimer ───────────────────────────────────────────────────────────
   bool _needsDisclaimer = false;
@@ -234,13 +240,23 @@ class AppProvider extends ChangeNotifier {
     if (query.trim().isEmpty) {
       _searchResults = [];
       _searching = false;
+      _isFrequencySearch = false;
       notifyListeners();
       return;
     }
     _searching = true;
+    _isFrequencySearch = looksLikeFrequency(query);
     notifyListeners();
-    final results = await DatabaseService.instance.searchAirports(
-        query, limit: 60, types: kDefaultAirportTypes, requireFrequencies: _hideNoFreq);
+
+    final List<Airport> results;
+    if (_isFrequencySearch) {
+      results = await DatabaseService.instance
+          .searchAirportsByFrequency(query, limit: 60);
+    } else {
+      results = await DatabaseService.instance.searchAirports(
+          query, limit: 60, types: kDefaultAirportTypes, requireFrequencies: _hideNoFreq);
+    }
+
     if (_lastQuery == query) {
       _searchResults = results;
       _searching = false;
@@ -251,6 +267,7 @@ class AppProvider extends ChangeNotifier {
   void clearSearch() {
     _searchResults = [];
     _searching = false;
+    _isFrequencySearch = false;
     _lastQuery = '';
     notifyListeners();
   }

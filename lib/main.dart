@@ -11,8 +11,10 @@ import 'services/background_service.dart';
 import 'services/frequency_notification_service.dart';
 import 'services/metrics_service.dart';
 import 'services/shake_service.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'widgets/bug_report_sheet.dart';
 import 'widgets/disclaimer_dialog.dart';
+import 'widgets/whats_new_dialog.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -253,6 +255,7 @@ class _Root extends StatefulWidget {
 class _RootState extends State<_Root> {
   bool _splashVisible = true;
   bool _disclaimerTriggered = false;
+  bool _whatsNewTriggered = false;
 
   @override
   void initState() {
@@ -290,6 +293,20 @@ class _RootState extends State<_Root> {
                 _disclaimerTriggered = true;
                 WidgetsBinding.instance.addPostFrameCallback((_) {
                   if (mounted) showDisclaimerDialog(context, provider);
+                });
+              }
+              // Show What's New after disclaimer (or immediately if no disclaimer)
+              if (provider.state == AppState.ready &&
+                  !_splashVisible &&
+                  !provider.needsDisclaimer &&
+                  !_whatsNewTriggered) {
+                _whatsNewTriggered = true;
+                WidgetsBinding.instance.addPostFrameCallback((_) async {
+                  if (!mounted) return;
+                  final info = await PackageInfo.fromPlatform();
+                  if (mounted) {
+                    await maybeShowWhatsNew(context, info.version);
+                  }
                 });
               }
               if (provider.state == AppState.loading) {

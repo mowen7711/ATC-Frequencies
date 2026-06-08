@@ -9,6 +9,7 @@ import '../services/background_service.dart';
 import '../services/frequency_notification_service.dart';
 import '../widgets/bug_report_sheet.dart';
 import '../widgets/disclaimer_dialog.dart' show kDisclaimerText;
+import '../widgets/whats_new_dialog.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -513,6 +514,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   icon: Icons.confirmation_number_outlined,
                   label: 'Frequencies',
                   value: '~90,000 ATC entries',
+                ),
+                const Divider(height: 1),
+                InkWell(
+                  onTap: () async {
+                    if (_version.isEmpty) return;
+                    await maybeShowWhatsNew(
+                      context,
+                      _version.replaceFirst('v', ''),
+                      forceShow: true,
+                    );
+                  },
+                  child: const _SettingRow(
+                    icon: Icons.new_releases_rounded,
+                    label: "What's New",
+                    value: 'View release notes',
+                  ),
                 ),
               ],
             ),
