@@ -229,18 +229,22 @@ class DatabaseService {
   // ── Search ────────────────────────────────────────────────────────────────
 
   Future<List<Airport>> searchAirports(String query,
-      {int limit = 50, List<String>? types}) async {
+      {int limit = 50, List<String>? types, bool requireFrequencies = false}) async {
     if (query.trim().isEmpty) return [];
     final d = await db;
     final q = '%${query.trim()}%';
     final typeFilter = types != null && types.isNotEmpty
         ? 'AND type IN (${types.map((_) => '?').join(',')})'
         : '';
+    final freqFilter = requireFrequencies
+        ? 'AND EXISTS (SELECT 1 FROM frequencies WHERE airport_ref = airports.id)'
+        : '';
     final args = [q, q, q, q, if (types != null) ...types, limit];
     final rows = await d.rawQuery('''
       SELECT * FROM airports
       WHERE (name LIKE ? OR ident LIKE ? OR iata_code LIKE ? OR municipality LIKE ?)
       $typeFilter
+      $freqFilter
       ORDER BY
         CASE WHEN iata_code LIKE ? THEN 0
              WHEN ident LIKE ? THEN 1
@@ -259,6 +263,7 @@ class DatabaseService {
     double radiusKm = 50,
     List<String>? types,
     int limit = 100,
+    bool requireFrequencies = false,
   }) async {
     final d = await db;
     final latDelta = radiusKm / 111.0;
@@ -266,6 +271,9 @@ class DatabaseService {
 
     final typeFilter = types != null && types.isNotEmpty
         ? 'AND type IN (${types.map((_) => '?').join(',')})'
+        : '';
+    final freqFilter = requireFrequencies
+        ? 'AND EXISTS (SELECT 1 FROM frequencies WHERE airport_ref = airports.id)'
         : '';
     final args = [
       lat - latDelta,
@@ -280,6 +288,7 @@ class DatabaseService {
       WHERE latitude_deg BETWEEN ? AND ?
         AND longitude_deg BETWEEN ? AND ?
         $typeFilter
+        $freqFilter
     ''', args);
 
     final airports = rows.map(Airport.fromMap).toList();

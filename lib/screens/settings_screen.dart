@@ -8,6 +8,7 @@ import '../providers/theme_provider.dart';
 import '../services/background_service.dart';
 import '../services/frequency_notification_service.dart';
 import '../widgets/bug_report_sheet.dart';
+import '../widgets/disclaimer_dialog.dart' show kDisclaimerText;
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -603,6 +604,39 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const _InfoTile(
             icon: Icons.vibration_rounded,
             text: 'Tip: shake your phone at any time to report a problem instantly.',
+          ),
+
+          // ── Disclaimer ────────────────────────────────────────────────
+          _SectionHeader('Disclaimer'),
+          _Card(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.warning_amber_rounded,
+                          color: context.col.accent, size: 18),
+                      const SizedBox(width: 8),
+                      Text('For Recreational Use Only',
+                          style: TextStyle(
+                              color: context.col.textPrimary,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600)),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    kDisclaimerText,
+                    style: TextStyle(
+                        color: context.col.textSecondary,
+                        fontSize: 12,
+                        height: 1.55),
+                  ),
+                ],
+              ),
+            ),
           ),
 
           const SizedBox(height: 40),

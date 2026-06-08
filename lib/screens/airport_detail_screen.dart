@@ -13,6 +13,7 @@ import '../models/runway.dart';
 import '../services/database_service.dart';
 import '../services/frequency_notification_service.dart';
 import '../services/metrics_service.dart';
+import '../widgets/disclaimer_banner.dart';
 import '../widgets/frequency_card.dart';
 import '../widgets/runway_card.dart';
 import '../widgets/signal_reception_card.dart';
@@ -576,11 +577,13 @@ class _FrequenciesSection extends StatelessWidget {
                   color: context.col.textPrimary,
                   fontSize: 18,
                   fontWeight: FontWeight.w700)),
+          const SizedBox(height: 10),
+          const DisclaimerBanner(),
           const SizedBox(height: 12),
           if (loading)
             Center(
                 child: CircularProgressIndicator(color: context.col.accent))
-          else if (frequencies.isEmpty)
+          else if (frequencies.isEmpty) ...[
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
@@ -602,12 +605,54 @@ class _FrequenciesSection extends StatelessWidget {
                   ),
                 ],
               ),
-            )
-          else
+            ),
+            const SizedBox(height: 8),
+            _ContributeLink(icao: icao),
+          ] else ...[
             ...frequencies.map((f) => Padding(
                   padding: const EdgeInsets.only(bottom: 8),
                   child: FrequencyCard(frequency: f),
                 )),
+            const SizedBox(height: 4),
+            _ContributeLink(icao: icao),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+// ── Contribute link ───────────────────────────────────────────────────────────
+
+class _ContributeLink extends StatelessWidget {
+  const _ContributeLink({required this.icao});
+  final String icao;
+
+  Future<void> _launch() async {
+    final uri = Uri.parse('https://ourairports.com/airports/$icao/');
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: _launch,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.edit_outlined, size: 11, color: context.col.textMuted),
+          const SizedBox(width: 4),
+          Text(
+            'Missing a frequency? Add it at ourairports.com',
+            style: TextStyle(
+              color: context.col.textMuted,
+              fontSize: 11,
+              decoration: TextDecoration.underline,
+              decorationColor: context.col.textMuted,
+            ),
+          ),
         ],
       ),
     );

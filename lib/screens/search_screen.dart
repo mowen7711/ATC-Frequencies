@@ -39,24 +39,36 @@ class _SearchScreenState extends State<SearchScreen> {
       appBar: AppBar(
         title: Text('Search Airports'),
         bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(68),
+          preferredSize: const Size.fromHeight(108),
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-            child: TextField(
-              controller: _controller,
-              focusNode: _focusNode,
-              onChanged: _onChanged,
-              autofocus: false,
-              style: TextStyle(color: context.col.textPrimary),
-              decoration: InputDecoration(
-                hintText: 'Airport name, ICAO, IATA, city…',
-                prefixIcon: Icon(Icons.search_rounded, color: context.col.textMuted),
-                suffixIcon: _controller.text.isNotEmpty
-                    ? IconButton(
-                        icon: Icon(Icons.clear_rounded, color: context.col.textMuted),
-                        onPressed: _clear,
-                      )
-                    : null,
+            child: Consumer<AppProvider>(
+              builder: (context, provider, _) => Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  TextField(
+                    controller: _controller,
+                    focusNode: _focusNode,
+                    onChanged: _onChanged,
+                    autofocus: false,
+                    style: TextStyle(color: context.col.textPrimary),
+                    decoration: InputDecoration(
+                      hintText: 'Airport name, ICAO, IATA, city…',
+                      prefixIcon: Icon(Icons.search_rounded, color: context.col.textMuted),
+                      suffixIcon: _controller.text.isNotEmpty
+                          ? IconButton(
+                              icon: Icon(Icons.clear_rounded, color: context.col.textMuted),
+                              onPressed: _clear,
+                            )
+                          : null,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  _FreqFilterChip(
+                    active: provider.hideNoFreq,
+                    onTap: provider.toggleHideNoFreq,
+                  ),
+                ],
               ),
             ),
           ),
@@ -110,6 +122,50 @@ class _SearchScreenState extends State<SearchScreen> {
             },
           );
         },
+      ),
+    );
+  }
+}
+
+// ── Frequency filter chip ─────────────────────────────────────────────────────
+
+class _FreqFilterChip extends StatelessWidget {
+  const _FreqFilterChip({required this.active, required this.onTap});
+  final bool active;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          color: active ? context.col.accent : context.col.card,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+              color: active ? context.col.accent : context.col.border, width: 1),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              active ? Icons.radio_button_checked_rounded : Icons.radio_button_unchecked_rounded,
+              size: 12,
+              color: active ? Colors.black : context.col.textSecondary,
+            ),
+            const SizedBox(width: 5),
+            Text(
+              'With frequencies only',
+              style: TextStyle(
+                color: active ? Colors.black : context.col.textSecondary,
+                fontSize: 12,
+                fontWeight: active ? FontWeight.w700 : FontWeight.normal,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

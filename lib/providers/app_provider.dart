@@ -9,6 +9,8 @@ import '../services/location_service.dart';
 
 const String _kHomeAirportKey    = 'home_airport_ident';
 const String _kDistanceUnitKey   = 'distance_unit';
+const String _kHideNoFreqKey     = 'hide_no_freq';
+const String _kDisclaimerKey     = 'disclaimer_agreed';
 
 enum AppState { loading, ready, error }
 
@@ -74,6 +76,30 @@ class AppProvider extends ChangeNotifier {
   List<Airport> get searchResults => _searchResults;
   bool get searching => _searching;
 
+  // ── Disclaimer ───────────────────────────────────────────────────────────
+  bool _needsDisclaimer = false;
+  bool get needsDisclaimer => _needsDisclaimer;
+
+  Future<void> acceptDisclaimer() async {
+    _needsDisclaimer = false;
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_kDisclaimerKey, true);
+  }
+
+  // ── Frequency filter ─────────────────────────────────────────────────────
+  bool _hideNoFreq = false;
+  bool get hideNoFreq => _hideNoFreq;
+
+  Future<void> toggleHideNoFreq() async {
+    _hideNoFreq = !_hideNoFreq;
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_kHideNoFreqKey, _hideNoFreq);
+    if (_lastQuery.isNotEmpty) await search(_lastQuery);
+    if (_nearbyLat != 0 || _nearbyLon != 0) await _loadNearbyWithCurrentLocation();
+  }
+
   // ── Nearby ────────────────────────────────────────────────────────────────
   List<(Airport, double)> _nearbyAirports = [];
   bool _loadingNearby = false;
@@ -102,6 +128,8 @@ class AppProvider extends ChangeNotifier {
       _distanceUnit = DistanceUnit.values.firstWhere(
           (u) => u.name == unitName, orElse: () => DistanceUnit.km);
     }
+    _hideNoFreq = prefs.getBool(_kHideNoFreqKey) ?? false;
+    _needsDisclaimer = !(prefs.getBool(_kDisclaimerKey) ?? false);
     try {
       await DataService.instance.ensureData(
         onProgress: (status, progress) {
@@ -211,8 +239,8 @@ class AppProvider extends ChangeNotifier {
     }
     _searching = true;
     notifyListeners();
-    final results = await DatabaseService.instance
-        .searchAirports(query, limit: 60, types: kDefaultAirportTypes);
+    final results = await DatabaseService.instance.searchAirports(
+        query, limit: 60, types: kDefaultAirportTypes, requireFrequencies: _hideNoFreq);
     if (_lastQuery == query) {
       _searchResults = results;
       _searching = false;
@@ -272,6 +300,7 @@ class AppProvider extends ChangeNotifier {
       _nearbyLon,
       radiusKm: _nearbyRadius,
       types: _nearbyTypes,
+      requireFrequencies: _hideNoFreq,
     );
     _loadingNearby = false;
     notifyListeners();

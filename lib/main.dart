@@ -12,6 +12,7 @@ import 'services/frequency_notification_service.dart';
 import 'services/metrics_service.dart';
 import 'services/shake_service.dart';
 import 'widgets/bug_report_sheet.dart';
+import 'widgets/disclaimer_dialog.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -251,6 +252,7 @@ class _Root extends StatefulWidget {
 
 class _RootState extends State<_Root> {
   bool _splashVisible = true;
+  bool _disclaimerTriggered = false;
 
   @override
   void initState() {
@@ -281,6 +283,15 @@ class _RootState extends State<_Root> {
         children: [
           Consumer<AppProvider>(
             builder: (context, provider, _) {
+              if (provider.state == AppState.ready &&
+                  !_splashVisible &&
+                  provider.needsDisclaimer &&
+                  !_disclaimerTriggered) {
+                _disclaimerTriggered = true;
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (mounted) showDisclaimerDialog(context, provider);
+                });
+              }
               if (provider.state == AppState.loading) {
                 return LoadingScreen(
                   status: provider.loadingStatus,

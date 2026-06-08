@@ -45,7 +45,7 @@ class _NearbyScreenState extends State<NearbyScreen> {
             ],
             bottom: hasLocation
                 ? PreferredSize(
-                    preferredSize: const Size.fromHeight(72),
+                    preferredSize: const Size.fromHeight(108),
                     child: _FilterBar(provider: provider),
                   )
                 : null,
@@ -113,40 +113,47 @@ class _FilterBar extends StatelessWidget {
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Radius:', style: TextStyle(color: context.col.textSecondary, fontSize: 13)),
-          SizedBox(width: 12),
-          ...radii.map((r) {
-            // Match selected by proximity (handles unit switching rounding)
-            final selected = (provider.nearbyRadius - r).abs() < 0.5;
-            return Padding(
-              padding: const EdgeInsets.only(right: 6),
-              child: GestureDetector(
-                onTap: () => provider.updateNearbyRadius(r),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 150),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: selected ? context.col.accent : context.col.card,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                        color: selected ? context.col.accent : context.col.border, width: 1),
-                  ),
-                  child: Text(
-                    formatRadius(r, provider.distanceUnit),
-                    style: TextStyle(
-                      color: selected ? Colors.black : context.col.textSecondary,
-                      fontSize: 12,
-                      fontWeight:
-                          selected ? FontWeight.w700 : FontWeight.normal,
+          Row(
+            children: [
+              Text('Radius:', style: TextStyle(color: context.col.textSecondary, fontSize: 13)),
+              SizedBox(width: 12),
+              ...radii.map((r) {
+                final selected = (provider.nearbyRadius - r).abs() < 0.5;
+                return Padding(
+                  padding: const EdgeInsets.only(right: 6),
+                  child: GestureDetector(
+                    onTap: () => provider.updateNearbyRadius(r),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 150),
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: selected ? context.col.accent : context.col.card,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                            color: selected ? context.col.accent : context.col.border, width: 1),
+                      ),
+                      child: Text(
+                        formatRadius(r, provider.distanceUnit),
+                        style: TextStyle(
+                          color: selected ? Colors.black : context.col.textSecondary,
+                          fontSize: 12,
+                          fontWeight: selected ? FontWeight.w700 : FontWeight.normal,
+                        ),
+                      ),
                     ),
                   ),
-                ),
-              ),
-            );
-          }),
+                );
+              }),
+            ],
+          ),
+          const SizedBox(height: 8),
+          _FreqFilterChip(
+            active: provider.hideNoFreq,
+            onTap: provider.toggleHideNoFreq,
+          ),
         ],
       ),
     );
@@ -364,6 +371,50 @@ class _EmptyNearby extends StatelessWidget {
             Text(
               'Try increasing the radius above.',
               style: TextStyle(color: context.col.textSecondary, fontSize: 13),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Frequency filter chip ─────────────────────────────────────────────────────
+
+class _FreqFilterChip extends StatelessWidget {
+  const _FreqFilterChip({required this.active, required this.onTap});
+  final bool active;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          color: active ? context.col.accent : context.col.card,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+              color: active ? context.col.accent : context.col.border, width: 1),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              active ? Icons.radio_button_checked_rounded : Icons.radio_button_unchecked_rounded,
+              size: 12,
+              color: active ? Colors.black : context.col.textSecondary,
+            ),
+            const SizedBox(width: 5),
+            Text(
+              'With frequencies only',
+              style: TextStyle(
+                color: active ? Colors.black : context.col.textSecondary,
+                fontSize: 12,
+                fontWeight: active ? FontWeight.w700 : FontWeight.normal,
+              ),
             ),
           ],
         ),
