@@ -7,10 +7,11 @@ import '../services/database_service.dart';
 import '../services/data_service.dart';
 import '../services/location_service.dart';
 
-const String _kHomeAirportKey    = 'home_airport_ident';
-const String _kDistanceUnitKey   = 'distance_unit';
-const String _kHideNoFreqKey     = 'hide_no_freq';
-const String _kDisclaimerKey     = 'disclaimer_agreed';
+const String _kHomeAirportKey       = 'home_airport_ident';
+const String _kDistanceUnitKey      = 'distance_unit';
+const String _kHideNoFreqKey        = 'hide_no_freq';
+const String _kDisclaimerKey        = 'disclaimer_agreed';
+const String _kViewingAreasKey      = 'viewing_areas_unlocked';
 
 enum AppState { loading, ready, error }
 
@@ -93,6 +94,17 @@ class AppProvider extends ChangeNotifier {
     await prefs.setBool(_kDisclaimerKey, true);
   }
 
+  // ── Viewing areas (beta easter egg) ──────────────────────────────────────
+  bool _viewingAreasUnlocked = false;
+  bool get viewingAreasUnlocked => _viewingAreasUnlocked;
+
+  Future<void> unlockViewingAreas() async {
+    _viewingAreasUnlocked = true;
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_kViewingAreasKey, true);
+  }
+
   // ── Frequency filter ─────────────────────────────────────────────────────
   bool _hideNoFreq = false;
   bool get hideNoFreq => _hideNoFreq;
@@ -136,6 +148,7 @@ class AppProvider extends ChangeNotifier {
     }
     _hideNoFreq = prefs.getBool(_kHideNoFreqKey) ?? false;
     _needsDisclaimer = !(prefs.getBool(_kDisclaimerKey) ?? false);
+    _viewingAreasUnlocked = prefs.getBool(_kViewingAreasKey) ?? false;
     try {
       await DataService.instance.ensureData(
         onProgress: (status, progress) {

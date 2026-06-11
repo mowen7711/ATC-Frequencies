@@ -86,7 +86,7 @@ services/
   terrain_service.dart  — VHF signal model, SignalResult, SignalQuality enum
   metrics_service.dart  — Anonymous analytics → Cloudflare Worker → NeonDB
   sdr_service.dart      — iqsrc:// intent for RTL-SDR / SDR Touch integration
-  shake_service.dart    — Accelerometer shake detection (threshold 18 m/s², 1.5s cooldown)
+  shake_service.dart    — Accelerometer shake detection (threshold 28 m/s², 2.5s cooldown)
 
 theme/
   app_colors.dart       — AppColors ThemeExtension (dark + light), context.col extension
@@ -342,7 +342,7 @@ Two entry points:
 ## Bug reporting
 
 Triggered by:
-1. Shaking the phone (`ShakeService` — threshold 18 m/s², 1.5s cooldown)
+1. Shaking the phone (`ShakeService` — threshold 28 m/s², 2.5s cooldown)
 2. Settings → Feedback → "Found a problem?" button
 
 Shows `BugReportSheet` bottom sheet. Fields: description (required), context (optional). Sends via `MetricsService.trackBugReport()` → NeonDB measurement `bug_report`.

@@ -9,8 +9,8 @@ class ShakeService {
   ShakeService._();
   static final ShakeService instance = ShakeService._();
 
-  static const double _kThreshold  = 18.0; // m/s² above which = shake
-  static const int    _kCooldownMs = 1500; // ms between shake events
+  static const double _kThreshold  = 28.0; // m/s² above which = shake
+  static const int    _kCooldownMs = 2500; // ms between shake events
 
   StreamSubscription<AccelerometerEvent>? _sub;
   VoidCallback? _onShake;

@@ -51,3 +51,10 @@ android/key.properties
 
 # Cloudflare Worker dependencies
 metrics-relay/node_modules/
+
+# Claude Code personal settings
+.claude/settings.local.json
+
+# Scraper artifacts
+tools/scrape_log.txt
+tools/viewing_parks_progress.json

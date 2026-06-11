@@ -13,6 +13,8 @@ import '../models/runway.dart';
 import '../services/database_service.dart';
 import '../services/frequency_notification_service.dart';
 import '../services/metrics_service.dart';
+import '../services/viewing_parks_service.dart';
+import '../widgets/bug_report_sheet.dart';
 import '../widgets/disclaimer_banner.dart';
 import '../widgets/frequency_card.dart';
 import '../widgets/runway_card.dart';
@@ -33,6 +35,7 @@ class _AirportDetailScreenState extends State<AirportDetailScreen> {
   List<Runway> _runways = [];
   List<Navaid> _navaids = [];
   bool _loadingFreqs = true;
+  ViewingParkInfo? _viewingPark;
 
   @override
   void initState() {
@@ -50,6 +53,7 @@ class _AirportDetailScreenState extends State<AirportDetailScreen> {
       FrequencyNotificationService.instance.selectedIdent,
       DatabaseService.instance.getRunways(widget.airport.ident),
       DatabaseService.instance.getNavaids(widget.airport.ident),
+      ViewingParksService.instance.lookup(widget.airport.ident),
     ]);
     if (mounted) {
       setState(() {
@@ -58,6 +62,7 @@ class _AirportDetailScreenState extends State<AirportDetailScreen> {
         _isPinned = (results[2] as String?) == widget.airport.ident;
         _runways = results[3] as List<Runway>;
         _navaids = results[4] as List<Navaid>;
+        _viewingPark = results[5] as ViewingParkInfo?;
         _loadingFreqs = false;
       });
     }
@@ -155,6 +160,7 @@ class _AirportDetailScreenState extends State<AirportDetailScreen> {
                   runways: _runways,
                   navaids: _navaids,
                   loading: _loadingFreqs,
+                  viewingPark: _viewingPark,
                 ),
                 const SizedBox(height: 40),
               ],
@@ -188,6 +194,27 @@ class _AirportDetailScreenState extends State<AirportDetailScreen> {
         ],
       ),
       actions: [
+        PopupMenuButton<String>(
+          icon: Icon(Icons.more_vert_rounded, color: context.col.textSecondary),
+          color: context.col.surface,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          itemBuilder: (_) => [
+            PopupMenuItem(
+              value: 'report',
+              child: Row(
+                children: [
+                  Icon(Icons.bug_report_outlined, size: 18, color: context.col.accent),
+                  const SizedBox(width: 10),
+                  Text('Report a problem',
+                      style: TextStyle(color: context.col.textPrimary, fontSize: 14)),
+                ],
+              ),
+            ),
+          ],
+          onSelected: (value) {
+            if (value == 'report') showBugReportSheet(context);
+          },
+        ),
         // Pin frequencies to notification shade
         IconButton(
           icon: AnimatedSwitcher(
@@ -302,20 +329,50 @@ class _MapSection extends StatelessWidget {
 
 // ── Combined Airport Info + Runways + Navaids ─────────────────────────────────
 
-class _AirportInfoSection extends StatelessWidget {
+class _AirportInfoSection extends StatefulWidget {
   const _AirportInfoSection({
     required this.airport,
     required this.runways,
     required this.navaids,
     required this.loading,
+    this.viewingPark,
   });
   final Airport airport;
   final List<Runway> runways;
   final List<Navaid> navaids;
   final bool loading;
+  final ViewingParkInfo? viewingPark;
+
+  @override
+  State<_AirportInfoSection> createState() => _AirportInfoSectionState();
+}
+
+class _AirportInfoSectionState extends State<_AirportInfoSection> {
+  int _headerTaps = 0;
+
+  void _onHeaderTap() {
+    final provider = context.read<AppProvider>();
+    if (provider.viewingAreasUnlocked) return;
+    _headerTaps++;
+    if (_headerTaps >= 10) {
+      provider.unlockViewingAreas();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Viewing Areas unlocked'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final airport      = widget.airport;
+    final runways      = widget.runways;
+    final navaids      = widget.navaids;
+    final loading      = widget.loading;
+    final viewingPark  = widget.viewingPark;
+    final unlocked     = context.watch<AppProvider>().viewingAreasUnlocked;
     final ilsNavaids    = navaids.where((n) => n.isIls).toList();
     final otherNavaids  = navaids.where((n) => !n.isIls).toList();
 
@@ -324,11 +381,15 @@ class _AirportInfoSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Airport Information',
-              style: TextStyle(
-                  color: context.col.textPrimary,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700)),
+          GestureDetector(
+            onTap: _onHeaderTap,
+            behavior: HitTestBehavior.opaque,
+            child: Text('Airport Information',
+                style: TextStyle(
+                    color: context.col.textPrimary,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700)),
+          ),
           const SizedBox(height: 12),
           // ── Airport details card ─────────────────────────────────────────
           Container(
@@ -354,8 +415,9 @@ class _AirportInfoSection extends StatelessWidget {
                             airport.locationString),
                       if (airport.elevationFt != null)
                         _infoRow(context, Icons.terrain_rounded,
-                            '${airport.elevationFt} ft  ·  '
-                            '${(airport.elevationFt! * 0.3048).round()} m elevation'),
+                            context.read<AppProvider>().distanceUnit == DistanceUnit.miles
+                                ? '${airport.elevationFt} ft elevation'
+                                : _elevMetres(airport.elevationFt!)),
                       if (airport.iataCode.isNotEmpty)
                         _infoRow(context, Icons.confirmation_number_outlined,
                             'IATA: ${airport.iataCode}'),
@@ -363,11 +425,13 @@ class _AirportInfoSection extends StatelessWidget {
                   ),
                 ),
                 if (airport.hasCoordinates) _CoordRow(airport: airport),
+                if (unlocked && viewingPark != null)
+                  _ViewingParkRow(info: viewingPark),
                 const SizedBox(height: 6),
 
                 // ── Runways sub-section ──────────────────────────────────
                 const Divider(height: 1),
-                _SubHeader('Runways'),
+                const _SubHeader('Runways'),
                 if (loading)
                   Padding(
                     padding: const EdgeInsets.all(16),
@@ -395,7 +459,7 @@ class _AirportInfoSection extends StatelessWidget {
                 // ── Navigation Aids sub-section ──────────────────────────
                 if (!loading && otherNavaids.isNotEmpty) ...[
                   const Divider(height: 1),
-                  _SubHeader('Navigation Aids'),
+                  const _SubHeader('Navigation Aids'),
                   for (var i = 0; i < otherNavaids.length; i++) ...[
                     if (i > 0) const Divider(height: 1, indent: 14, endIndent: 14),
                     _NavaidRow(navaid: otherNavaids[i]),
@@ -408,6 +472,12 @@ class _AirportInfoSection extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  String _elevMetres(num ft) {
+    final m = ft * 0.3048;
+    final r = m.round();
+    return r == 0 && ft.abs() > 0 ? '<1 m elevation' : '$r m elevation';
   }
 
   Widget _infoRow(BuildContext context, IconData icon, String text) {
@@ -483,6 +553,145 @@ class _CoordRow extends StatelessWidget {
             Icon(Icons.copy_rounded, size: 12, color: context.col.textMuted),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _ViewingParkRow extends StatelessWidget {
+  const _ViewingParkRow({required this.info});
+  final ViewingParkInfo info;
+
+  void _open(BuildContext context) {
+    MetricsService.instance.trackFeature('viewing_park_tapped');
+    if (info.hasSpots) {
+      showModalBottomSheet(
+        context: context,
+        backgroundColor: context.col.surface,
+        isScrollControlled: true,
+        useSafeArea: true,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+        ),
+        builder: (_) => _ViewingParkSheet(info: info),
+      );
+    } else {
+      _launchUrl(info.url);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: () => _open(context),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(14, 0, 14, 10),
+        child: Row(
+          children: [
+            Icon(Icons.photo_camera_outlined, size: 16, color: context.col.accent),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'Viewing Areas',
+                style: TextStyle(color: context.col.textPrimary, fontSize: 13),
+              ),
+            ),
+            Icon(Icons.chevron_right_rounded, size: 16, color: context.col.textMuted),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+Future<void> _launchUrl(String url) async {
+  final uri = Uri.parse(url);
+  if (await canLaunchUrl(uri)) {
+    await launchUrl(uri, mode: LaunchMode.externalApplication);
+  }
+}
+
+class _ViewingParkSheet extends StatelessWidget {
+  const _ViewingParkSheet({required this.info});
+  final ViewingParkInfo info;
+
+  @override
+  Widget build(BuildContext context) {
+    return DraggableScrollableSheet(
+      expand: false,
+      initialChildSize: 0.6,
+      minChildSize: 0.3,
+      maxChildSize: 0.92,
+      builder: (_, controller) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // drag handle
+          Center(
+            child: Container(
+              margin: const EdgeInsets.only(top: 10, bottom: 4),
+              width: 36,
+              height: 4,
+              decoration: BoxDecoration(
+                color: context.col.border,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+            child: Text(
+              'Viewing Areas',
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: context.col.textPrimary,
+              ),
+            ),
+          ),
+          // disclaimer
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            child: Text(
+              'Sourced from spotterguide.net. Not an official list — access and availability may vary. Use your own judgement.',
+              style: TextStyle(fontSize: 11, color: context.col.textSecondary),
+            ),
+          ),
+          const Divider(height: 1),
+          Expanded(
+            child: ListView(
+              controller: controller,
+              children: [
+                ...info.spots.map(
+                  (spot) => ListTile(
+                    dense: true,
+                    leading: Icon(Icons.photo_camera_outlined,
+                        size: 18, color: context.col.accent),
+                    title: Text(
+                      spot.name,
+                      style: TextStyle(fontSize: 13, color: context.col.textPrimary),
+                    ),
+                    trailing: Icon(Icons.directions_outlined,
+                        size: 18, color: context.col.accent),
+                    onTap: () => _launchUrl(
+                        'https://maps.google.com/?q=${spot.lat},${spot.lon}'),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(8, 4, 8, 12),
+                  child: TextButton.icon(
+                    onPressed: () => _launchUrl(info.url),
+                    icon: Icon(Icons.open_in_new_rounded,
+                        size: 14, color: context.col.textMuted),
+                    label: Text(
+                      'View full spotter guide on spotterguide.net',
+                      style: TextStyle(fontSize: 12, color: context.col.textMuted),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -653,120 +862,16 @@ class _ContributeLink extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.edit_outlined, size: 11, color: context.col.textMuted),
+          Icon(Icons.edit_outlined, size: 12, color: context.col.textMuted),
           const SizedBox(width: 4),
           Text(
             'Missing a frequency? Add it at ourairports.com',
             style: TextStyle(
               color: context.col.textMuted,
-              fontSize: 11,
+              fontSize: 12,
               decoration: TextDecoration.underline,
               decorationColor: context.col.textMuted,
             ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ── LiveATC button ────────────────────────────────────────────────────────────
-
-class _LiveAtcButton extends StatelessWidget {
-  const _LiveAtcButton({required this.icao, required this.restricted});
-  final String icao;
-  final bool restricted;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () => restricted ? _showRestrictedDialog(context) : _launch(context),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        decoration: BoxDecoration(
-          color: restricted
-              ? context.col.textMuted.withAlpha(20)
-              : context.col.accent.withAlpha(25),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: restricted
-                ? context.col.border
-                : context.col.accent.withAlpha(120),
-          ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.headphones_rounded,
-              size: 14,
-              color: restricted ? context.col.textMuted : context.col.accent,
-            ),
-            const SizedBox(width: 5),
-            Text(
-              'Listen on LiveATC.net',
-              style: TextStyle(
-                color: restricted ? context.col.textMuted : context.col.accent,
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            if (restricted) ...[
-              const SizedBox(width: 4),
-              Icon(Icons.info_outline_rounded,
-                  size: 12, color: context.col.textMuted),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  Future<void> _launch(BuildContext context) async {
-    MetricsService.instance.trackFeature('liveatc_launched');
-    final uri = Uri.parse(
-        'https://www.liveatc.net/search/?icao=${icao.toUpperCase()}');
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    } else {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: const Text('Could not open LiveATC'),
-          backgroundColor: context.col.card,
-          behavior: SnackBarBehavior.floating,
-        ));
-      }
-    }
-  }
-
-  void _showRestrictedDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: ctx.col.surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Row(
-          children: [
-            Icon(Icons.gavel_rounded, color: ctx.col.accent, size: 22),
-            const SizedBox(width: 10),
-            Text('Not Available',
-                style: TextStyle(
-                    color: ctx.col.textPrimary, fontSize: 17)),
-          ],
-        ),
-        content: Text(
-          'Live ATC listening is legally restricted in this country. '
-          'LiveATC.net does not provide feeds here in accordance with local communications law.',
-          style: TextStyle(
-              color: ctx.col.textSecondary, fontSize: 14, height: 1.5),
-        ),
-        actions: [
-          FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: ctx.col.accent),
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('OK',
-                style: TextStyle(
-                    color: Colors.black, fontWeight: FontWeight.w700)),
           ),
         ],
       ),

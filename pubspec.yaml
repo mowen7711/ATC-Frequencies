@@ -1,6 +1,6 @@
 name: atc_freq
 description: Worldwide airport ATC frequencies — search, favourites, and nearby airports.
-version: 1.0.0+1
+version: 1.0.1+2
 publish_to: none
 
 environment:
@@ -39,6 +39,7 @@ dependencies:
   # Utilities
   intl: ^0.19.0
   url_launcher: ^6.3.0
+  android_intent_plus: ^5.0.0
   package_info_plus: ^8.0.0
   sensors_plus: ^6.1.0
 
