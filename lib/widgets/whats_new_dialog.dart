@@ -8,6 +8,15 @@ import '../constants.dart';
 
 const List<_Release> _kChangelog = [
   _Release(
+    version: '1.0.1',
+    title: 'Bug fixes & improvements',
+    items: [
+      'Runways and nav aids now shown on airport detail screens',
+      'Shake-to-report is less sensitive — fewer accidental triggers',
+      'Fixed several crashes and display issues',
+    ],
+  ),
+  _Release(
     version: '1.0.0',
     title: 'Welcome to ATC Frequencies',
     items: [
