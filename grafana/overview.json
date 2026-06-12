@@ -481,7 +481,8 @@
         },
         "legend": {
           "displayMode": "hidden"
-        }
+        },
+        "xField": "Locale"
       },
       "fieldConfig": {
         "defaults": {
