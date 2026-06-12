@@ -458,6 +458,17 @@
           "format": "table",
           "rawSql": "SELECT fields->>'version' AS \"Version\", COUNT(*) AS \"Opens\" FROM atc_metrics WHERE measurement = 'app_event' AND tags->>'event' = 'app_open' AND $__timeFilter(ts) GROUP BY 1 ORDER BY 2 DESC"
         }
+      ],
+      "transformations": [
+        {
+          "id": "rowsToFields",
+          "options": {
+            "mappings": [
+              {"fieldName": "Version", "handlerKey": "field.name"},
+              {"fieldName": "Opens", "handlerKey": "field.value"}
+            ]
+          }
+        }
       ]
     },
     {
