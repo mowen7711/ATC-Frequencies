@@ -348,31 +348,12 @@ class _AirportInfoSection extends StatefulWidget {
 }
 
 class _AirportInfoSectionState extends State<_AirportInfoSection> {
-  int _headerTaps = 0;
-
-  void _onHeaderTap() {
-    final provider = context.read<AppProvider>();
-    if (provider.viewingAreasUnlocked) return;
-    _headerTaps++;
-    if (_headerTaps >= 10) {
-      provider.unlockViewingAreas();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Viewing Areas unlocked'),
-          duration: Duration(seconds: 2),
-        ),
-      );
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final airport      = widget.airport;
     final runways      = widget.runways;
     final navaids      = widget.navaids;
     final loading      = widget.loading;
-    final viewingPark  = widget.viewingPark;
-    final unlocked     = context.watch<AppProvider>().viewingAreasUnlocked;
     final ilsNavaids    = navaids.where((n) => n.isIls).toList();
     final otherNavaids  = navaids.where((n) => !n.isIls).toList();
 
@@ -381,15 +362,11 @@ class _AirportInfoSectionState extends State<_AirportInfoSection> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          GestureDetector(
-            onTap: _onHeaderTap,
-            behavior: HitTestBehavior.opaque,
-            child: Text('Airport Information',
-                style: TextStyle(
-                    color: context.col.textPrimary,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700)),
-          ),
+          Text('Airport Information',
+              style: TextStyle(
+                  color: context.col.textPrimary,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700)),
           const SizedBox(height: 12),
           // ── Airport details card ─────────────────────────────────────────
           Container(
@@ -425,8 +402,6 @@ class _AirportInfoSectionState extends State<_AirportInfoSection> {
                   ),
                 ),
                 if (airport.hasCoordinates) _CoordRow(airport: airport),
-                if (unlocked && viewingPark != null)
-                  _ViewingParkRow(info: viewingPark),
                 const SizedBox(height: 6),
 
                 // ── Runways sub-section ──────────────────────────────────
@@ -553,145 +528,6 @@ class _CoordRow extends StatelessWidget {
             Icon(Icons.copy_rounded, size: 12, color: context.col.textMuted),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _ViewingParkRow extends StatelessWidget {
-  const _ViewingParkRow({required this.info});
-  final ViewingParkInfo info;
-
-  void _open(BuildContext context) {
-    MetricsService.instance.trackFeature('viewing_park_tapped');
-    if (info.hasSpots) {
-      showModalBottomSheet(
-        context: context,
-        backgroundColor: context.col.surface,
-        isScrollControlled: true,
-        useSafeArea: true,
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-        ),
-        builder: (_) => _ViewingParkSheet(info: info),
-      );
-    } else {
-      _launchUrl(info.url);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: () => _open(context),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(14, 0, 14, 10),
-        child: Row(
-          children: [
-            Icon(Icons.photo_camera_outlined, size: 16, color: context.col.accent),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                'Viewing Areas',
-                style: TextStyle(color: context.col.textPrimary, fontSize: 13),
-              ),
-            ),
-            Icon(Icons.chevron_right_rounded, size: 16, color: context.col.textMuted),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-Future<void> _launchUrl(String url) async {
-  final uri = Uri.parse(url);
-  if (await canLaunchUrl(uri)) {
-    await launchUrl(uri, mode: LaunchMode.externalApplication);
-  }
-}
-
-class _ViewingParkSheet extends StatelessWidget {
-  const _ViewingParkSheet({required this.info});
-  final ViewingParkInfo info;
-
-  @override
-  Widget build(BuildContext context) {
-    return DraggableScrollableSheet(
-      expand: false,
-      initialChildSize: 0.6,
-      minChildSize: 0.3,
-      maxChildSize: 0.92,
-      builder: (_, controller) => Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // drag handle
-          Center(
-            child: Container(
-              margin: const EdgeInsets.only(top: 10, bottom: 4),
-              width: 36,
-              height: 4,
-              decoration: BoxDecoration(
-                color: context.col.border,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-            child: Text(
-              'Viewing Areas',
-              style: TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w600,
-                color: context.col.textPrimary,
-              ),
-            ),
-          ),
-          // disclaimer
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-            child: Text(
-              'Sourced from spotterguide.net. Not an official list — access and availability may vary. Use your own judgement.',
-              style: TextStyle(fontSize: 11, color: context.col.textSecondary),
-            ),
-          ),
-          const Divider(height: 1),
-          Expanded(
-            child: ListView(
-              controller: controller,
-              children: [
-                ...info.spots.map(
-                  (spot) => ListTile(
-                    dense: true,
-                    leading: Icon(Icons.photo_camera_outlined,
-                        size: 18, color: context.col.accent),
-                    title: Text(
-                      spot.name,
-                      style: TextStyle(fontSize: 13, color: context.col.textPrimary),
-                    ),
-                    trailing: Icon(Icons.directions_outlined,
-                        size: 18, color: context.col.accent),
-                    onTap: () => _launchUrl(
-                        'https://maps.google.com/?q=${spot.lat},${spot.lon}'),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(8, 4, 8, 12),
-                  child: TextButton.icon(
-                    onPressed: () => _launchUrl(info.url),
-                    icon: Icon(Icons.open_in_new_rounded,
-                        size: 14, color: context.col.textMuted),
-                    label: Text(
-                      'View full spotter guide on spotterguide.net',
-                      style: TextStyle(fontSize: 12, color: context.col.textMuted),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
       ),
     );
   }
