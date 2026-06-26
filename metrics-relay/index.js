@@ -23,9 +23,7 @@ const MAX_BODY_BYTES = 65536; // 64 KB ceiling
 // Valid measurement names — rejects garbage/spam payloads
 const VALID_MEASUREMENTS = new Set([
   'app_event',
-  'screen_view',
   'airport_view',
-  'feature_use',
   'download_stage',
   'download_complete',
   'bug_report',
@@ -91,12 +89,15 @@ export default {
       ) {
         continue; // skip invalid, don't reject the whole batch
       }
+      const eventTags = (e.tags && typeof e.tags === 'object') ? e.tags : {};
+      // Only attach geo to app_open — every other measurement stays
+      // location-free, including airport views.
+      const isAppOpen = e.measurement === 'app_event' && eventTags.event === 'app_open';
       rows.push({
         ts:          new Date(e.ts),
         measurement: e.measurement,
         install_id:  e.install_id,
-        // Merge Cloudflare geo into every event's tags automatically
-        tags:        { ...((e.tags   && typeof e.tags   === 'object') ? e.tags   : {}), ...geo },
+        tags:        { ...eventTags, ...(isAppOpen ? geo : {}) },
         fields:      (e.fields && typeof e.fields === 'object') ? e.fields : {},
       });
     }

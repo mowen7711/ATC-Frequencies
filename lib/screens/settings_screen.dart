@@ -455,7 +455,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           Expanded(
                             child: _ThemeButton(
                               label: 'Kilometres',
-                              icon: Icons.speed_rounded,
+                              icon: Icons.straighten_rounded,
                               selected: provider.distanceUnit ==
                                   DistanceUnit.km,
                               onTap: () => provider
@@ -466,7 +466,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           Expanded(
                             child: _ThemeButton(
                               label: 'Miles',
-                              icon: Icons.speed_rounded,
+                              icon: Icons.straighten_rounded,
                               selected: provider.distanceUnit ==
                                   DistanceUnit.miles,
                               onTap: () => provider
@@ -579,6 +579,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
           // ── How we use your data ───────────────────────────────────────
           _SectionHeader('How We Use Your Data'),
+          const _InfoTile(
+            icon: Icons.shield_outlined,
+            text: 'We deliberately keep this to the minimum useful for keeping the app running well. Nothing below is tied to your name, account, or device — only to a random anonymous ID that resets if you reinstall.',
+          ),
           _Card(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -586,38 +590,43 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 const _DataRow(
                   icon: Icons.fingerprint_rounded,
                   label: 'Anonymous install ID',
-                  detail: 'A random UUID generated on first launch. Cannot identify you — it has no link to your name, account, or device.',
-                ),
-                const Divider(height: 1),
-                const _DataRow(
-                  icon: Icons.language_rounded,
-                  label: 'Device locale',
-                  detail: 'e.g. "en-GB". Used to understand which regions use the app. No GPS or precise location.',
+                  detail: 'A random UUID generated on first launch. Cannot identify you — it has no link to your name, account, or device, and isn\'t shared between installs.',
                 ),
                 const Divider(height: 1),
                 const _DataRow(
                   icon: Icons.flight_rounded,
-                  label: 'Airports & frequencies viewed',
-                  detail: 'ICAO codes of airports you open and which frequency types you copy. No personal context is inferred.',
+                  label: 'Which airports are viewed',
+                  detail: 'We log "EGLL was viewed" — never who viewed it. This is purely so we can see which airports are most popular and prioritise building features for them (e.g. better local data, viewing spots) — not to track your activity or movements.',
                 ),
                 const Divider(height: 1),
                 const _DataRow(
                   icon: Icons.timer_outlined,
-                  label: 'Session length & app opens',
-                  detail: 'How long each session lasts and how often the app is opened. Used to measure engagement.',
+                  label: 'Session length & app opens, with app version and language',
+                  detail: 'How long each session lasts and how often the app is opened, plus your app version and device language. Used to measure engagement and catch issues on older versions — not tied to anything else you do in the app.',
                 ),
                 const Divider(height: 1),
                 const _DataRow(
                   icon: Icons.location_city_rounded,
-                  label: 'Approximate city (from IP)',
-                  detail: 'Cloudflare detects the city your internet connection is in when you open the app. Your IP address is never stored.',
+                  label: 'Approximate country/city (from IP), on app open only',
+                  detail: 'Cloudflare detects the rough location your internet connection is in, attached only to the app-open event above — never to which airports you view, frequencies you use, or anything else you do. Your IP address itself is never stored.',
                 ),
                 const Divider(height: 1),
                 const _DataRow(
-                  icon: Icons.block_rounded,
+                  icon: Icons.bug_report_outlined,
+                  label: 'Bug reports & crash details',
+                  detail: 'Only when you choose to submit one — the description you type, plus your app version. Nothing is sent automatically.',
+                ),
+                const Divider(height: 1),
+                const _DataRow(
+                  icon: Icons.speed_rounded,
+                  label: 'Data download performance',
+                  detail: 'How long the worldwide airport data takes to download, and whether it succeeded. Used to spot slow connections or failures — no personal data involved.',
+                ),
+                const Divider(height: 1),
+                const _DataRow(
+                  icon: Icons.verified_user_outlined,
                   label: 'What we never collect',
-                  detail: 'Your name, email, phone number, precise GPS location, contacts, photos, or any identifiable information.',
-                  isNegative: true,
+                  detail: 'Your name, email, phone number, precise GPS location, contacts, photos, which individual frequencies you copy, which features you tap, or any identifiable information.',
                 ),
               ],
             ),

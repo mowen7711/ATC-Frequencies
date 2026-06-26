@@ -24,7 +24,7 @@ class DisclaimerBanner extends StatelessWidget {
               'For recreational use only — always verify frequencies with official sources before flight.',
               style: TextStyle(
                 color: context.col.textSecondary,
-                fontSize: 11,
+                fontSize: 12,
                 height: 1.4,
               ),
             ),

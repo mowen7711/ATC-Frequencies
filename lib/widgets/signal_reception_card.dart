@@ -5,7 +5,6 @@ import '../constants.dart';
 import '../models/airport.dart';
 import '../providers/app_provider.dart';
 import '../screens/airport_detail_screen.dart' show kRestrictedCountries;
-import '../services/metrics_service.dart';
 import '../services/terrain_service.dart';
 
 class SignalReceptionCard extends StatefulWidget {
@@ -53,11 +52,6 @@ class _SignalReceptionCardState extends State<SignalReceptionCard> {
 
     if (mounted) {
       setState(() { _result = result; _loading = false; });
-      // Track when we show out-of-range results to measure LiveATC suggestion visibility
-      if (result.quality == SignalQuality.outOfRange ||
-          result.quality == SignalQuality.beyondRange) {
-        MetricsService.instance.trackFeature('liveatc_suggested');
-      }
     }
   }
 
@@ -241,17 +235,17 @@ class _ResultBody extends StatelessWidget {
         const Divider(height: 1),
         _StatRow(
           label: 'Your altitude (GPS)',
-          value: '${result.userAltitudeM.toStringAsFixed(0)} m ASL',
+          value: _altStr(result.userAltitudeM, context),
         ),
         const Divider(height: 1),
         _StatRow(
           label: 'Airport elevation',
-          value: '${result.airportElevationM.toStringAsFixed(0)} m ASL',
+          value: _altStr(result.airportElevationM, context),
         ),
         const Divider(height: 1),
         _StatRow(
           label: 'Height difference',
-          value: _heightStr(result.heightDifferenceM),
+          value: _heightStr(result.heightDifferenceM, context),
           valueColor: result.heightDifferenceM >= 0
               ? const Color(0xFF81C784)
               : const Color(0xFFEF9A9A),
@@ -281,7 +275,19 @@ class _ResultBody extends StatelessWidget {
     );
   }
 
-  String _heightStr(double m) {
+  String _altStr(double m, BuildContext context) {
+    final imperial = context.read<AppProvider>().distanceUnit == DistanceUnit.miles;
+    if (imperial) return '${(m * 3.28084).toStringAsFixed(0)} ft ASL';
+    return '${m.toStringAsFixed(0)} m ASL';
+  }
+
+  String _heightStr(double m, BuildContext context) {
+    final imperial = context.read<AppProvider>().distanceUnit == DistanceUnit.miles;
+    if (imperial) {
+      final ft = (m * 3.28084).toStringAsFixed(0);
+      if (m >= 0) return '+$ft ft (you are higher)';
+      return '$ft ft (airport is higher)';
+    }
     if (m >= 0) return '+${m.toStringAsFixed(0)} m (you are higher)';
     return '${m.toStringAsFixed(0)} m (airport is higher)';
   }
@@ -428,7 +434,6 @@ class _LiveAtcSuggestion extends StatelessWidget {
   }
 
   Future<void> _launch() async {
-    MetricsService.instance.trackFeature('liveatc_tapped_signal');
     final uri = Uri.parse(
         'https://www.liveatc.net/search/?icao=${airport.ident.toUpperCase()}');
     if (await canLaunchUrl(uri)) {
@@ -473,7 +478,6 @@ class _LiveAtcFooter extends StatelessWidget {
   }
 
   Future<void> _launch() async {
-    MetricsService.instance.trackFeature('liveatc_tapped_signal');
     final uri = Uri.parse(
         'https://www.liveatc.net/search/?icao=${airport.ident.toUpperCase()}');
     if (await canLaunchUrl(uri)) {

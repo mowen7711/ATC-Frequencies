@@ -11,7 +11,7 @@ import 'settings_screen.dart';
 import 'airport_detail_screen.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key, this.initialTab = 0});
+  const HomeScreen({super.key, this.initialTab = 2});
   final int initialTab;
 
   // Called by the background service notification tap to switch tabs while

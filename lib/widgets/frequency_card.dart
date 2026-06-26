@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../constants.dart';
 import '../models/frequency.dart';
-import '../services/metrics_service.dart';
 import '../services/sdr_service.dart';
 
 class FrequencyCard extends StatelessWidget {
@@ -86,7 +85,6 @@ class FrequencyCard extends StatelessWidget {
   }
 
   void _copyToClipboard(BuildContext context) {
-    MetricsService.instance.trackFreqCopy(frequency.type);
     Clipboard.setData(ClipboardData(text: frequency.formatted));
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -107,18 +105,26 @@ class _SdrButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      // Absorbs the tap so the parent InkWell (copy) does not fire
-      onTap: () => _onTap(context),
-      behavior: HitTestBehavior.opaque,
-      child: Tooltip(
-        message: 'Listen with SDR',
+    return Tooltip(
+      message: 'Listen with SDR radio',
+      child: InkWell(
+        onTap: () => _onTap(context),
+        borderRadius: BorderRadius.circular(8),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          child: Icon(
-            Icons.sensors_rounded,
-            size: 18,
-            color: context.col.textMuted.withAlpha(180),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.sensors_rounded,
+                  size: 20, color: context.col.accent),
+              const SizedBox(width: 4),
+              Text('SDR',
+                  style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: context.col.accent,
+                      letterSpacing: 0.5)),
+            ],
           ),
         ),
       ),
@@ -127,9 +133,15 @@ class _SdrButton extends StatelessWidget {
 
   Future<void> _onTap(BuildContext context) async {
     final launched = await SdrService.launchAtFrequency(frequencyMhz);
-    MetricsService.instance.trackSdrLaunch(
-        frequencyMhz, driverInstalled: launched);
-    if (!launched && context.mounted) {
+    if (!context.mounted) return;
+    if (launched) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Tuning SDR to ${frequencyMhz.toStringAsFixed(3)} MHz…'),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    } else {
       _showInstallDialog(context);
     }
   }
@@ -144,14 +156,15 @@ class _SdrButton extends StatelessWidget {
           children: [
             Icon(Icons.sensors_rounded, color: ctx.col.accent, size: 22),
             const SizedBox(width: 10),
-            Text('SDR Driver Required',
+            Text('RTL-SDR Driver Needed',
                 style: TextStyle(color: ctx.col.textPrimary, fontSize: 17)),
           ],
         ),
         content: Text(
-          'To listen live you need an RTL-SDR dongle connected via USB OTG '
-          'and the free RTL-SDR Driver app installed.\n\n'
-          'Compatible with SDR Touch and RF Analyzer.',
+          'To tune live frequencies you need:\n\n'
+          '1. An RTL-SDR dongle connected via USB OTG\n'
+          '2. The free RTL-SDR Driver app (required even if you have SDR Touch)\n\n'
+          'Once the driver is installed, tap SDR on any frequency to tune directly to it.',
           style: TextStyle(color: ctx.col.textSecondary, fontSize: 14, height: 1.5),
         ),
         actions: [
@@ -165,7 +178,7 @@ class _SdrButton extends StatelessWidget {
               Navigator.pop(ctx);
               SdrService.openPlayStore();
             },
-            child: const Text('Install Driver',
+            child: const Text('Get Driver (Free)',
                 style: TextStyle(
                     color: Colors.black, fontWeight: FontWeight.w700)),
           ),

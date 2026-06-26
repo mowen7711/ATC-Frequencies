@@ -179,93 +179,11 @@
       ]
     },
     {
-      "id": 4,
-      "type": "stat",
-      "title": "Frequencies Copied",
-      "gridPos": {
-        "x": 9,
-        "y": 0,
-        "w": 3,
-        "h": 4
-      },
-      "datasource": {
-        "type": "postgres",
-        "uid": "cfofy105jfxtsf"
-      },
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ]
-        },
-        "colorMode": "background",
-        "graphMode": "none"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "fixed",
-            "fixedColor": "yellow"
-          },
-          "unit": "short",
-          "noValue": "0"
-        }
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "format": "table",
-          "rawSql": "SELECT COUNT(*) AS value FROM atc_metrics WHERE measurement = 'feature_use' AND tags->>'feature' = 'freq_copy' AND $__timeFilter(ts)"
-        }
-      ]
-    },
-    {
-      "id": 5,
-      "type": "stat",
-      "title": "SDR Launches",
-      "gridPos": {
-        "x": 12,
-        "y": 0,
-        "w": 3,
-        "h": 4
-      },
-      "datasource": {
-        "type": "postgres",
-        "uid": "cfofy105jfxtsf"
-      },
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ]
-        },
-        "colorMode": "background",
-        "graphMode": "none"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "fixed",
-            "fixedColor": "purple"
-          },
-          "unit": "short",
-          "noValue": "0"
-        }
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "format": "table",
-          "rawSql": "SELECT COUNT(*) AS value FROM atc_metrics WHERE measurement = 'feature_use' AND tags->>'feature' = 'sdr_launch' AND $__timeFilter(ts)"
-        }
-      ]
-    },
-    {
       "id": 6,
       "type": "stat",
       "title": "Avg Session Length",
       "gridPos": {
-        "x": 15,
+        "x": 9,
         "y": 0,
         "w": 3,
         "h": 4
@@ -383,7 +301,7 @@
     {
       "id": 9,
       "type": "timeseries",
-      "title": "Feature Usage Over Time",
+      "title": "Airport Views Over Time",
       "gridPos": {
         "x": 0,
         "y": 13,
@@ -409,19 +327,9 @@
       },
       "targets": [
         {
-          "refId": "copy",
-          "format": "time_series",
-          "rawSql": "SELECT $__timeGroupAlias(ts,$__interval), COUNT(*) AS \"Freq Copies\" FROM atc_metrics WHERE measurement = 'feature_use' AND tags->>'feature' = 'freq_copy' AND $__timeFilter(ts) GROUP BY 1 ORDER BY 1"
-        },
-        {
           "refId": "airports",
           "format": "time_series",
           "rawSql": "SELECT $__timeGroupAlias(ts,$__interval), COUNT(*) AS \"Airport Views\" FROM atc_metrics WHERE measurement = 'airport_view' AND $__timeFilter(ts) GROUP BY 1 ORDER BY 1"
-        },
-        {
-          "refId": "sdr",
-          "format": "time_series",
-          "rawSql": "SELECT $__timeGroupAlias(ts,$__interval), COUNT(*) AS \"SDR Launches\" FROM atc_metrics WHERE measurement = 'feature_use' AND tags->>'feature' = 'sdr_launch' AND $__timeFilter(ts) GROUP BY 1 ORDER BY 1"
         }
       ]
     },

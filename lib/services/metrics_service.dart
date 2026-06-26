@@ -21,7 +21,13 @@ const String _kInstallIdKey = 'metrics_install_id';
 /// NeonDB — no credentials are ever stored in the app or APK.
 ///
 /// Nothing PII is collected: only a random anonymous install UUID that cannot
-/// be linked to a real person, plus the device locale tag.
+/// be linked to a real person, plus the device locale tag. We deliberately
+/// keep this to the minimum useful for app health and prioritisation —
+/// app opens (so we know roughly how many people use the app and where,
+/// country-level only), airport views (so we know which airports are most
+/// popular and can prioritise airport-specific features for them), crash/bug
+/// reports, and data-download performance. No individual feature taps
+/// (frequency copies, SDR launches, LiveATC taps, etc.) are tracked.
 class MetricsService {
   MetricsService._();
   static final MetricsService instance = MetricsService._();
@@ -81,35 +87,11 @@ class MetricsService {
     _flush(); // send immediately so data isn't lost on process kill
   }
 
-  /// A named screen became visible.
-  void trackScreen(String name) {
-    _record('screen_view', tags: {'screen': name});
-  }
-
-  /// User opened an airport detail page.
+  /// User opened an airport detail page. Anonymous and aggregate-only — used
+  /// to see which airports are most viewed so we can prioritise airport-
+  /// specific features, not to track individual users' behaviour.
   void trackAirportView(String icao, String type) {
     _record('airport_view', tags: {'icao': icao, 'type': type});
-  }
-
-  /// A frequency was copied to clipboard.
-  void trackFreqCopy(String freqType) {
-    _record('feature_use',
-        tags: {'feature': 'freq_copy', 'freq_type': freqType});
-  }
-
-  /// The SDR listen button was tapped.
-  void trackSdrLaunch(double frequencyMhz, {required bool driverInstalled}) {
-    _record('feature_use', tags: {
-      'feature': 'sdr_launch',
-      'driver_installed': driverInstalled.toString(),
-    }, fields: {
-      'freq_mhz': frequencyMhz,
-    });
-  }
-
-  /// Generic named feature (add_favourite, set_home, etc.).
-  void trackFeature(String featureName) {
-    _record('feature_use', tags: {'feature': featureName});
   }
 
   /// A download stage completed.

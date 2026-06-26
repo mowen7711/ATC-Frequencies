@@ -51,6 +51,7 @@ android/key.properties
 
 # Cloudflare Worker dependencies
 metrics-relay/node_modules/
+.wrangler/
 
 # Claude Code personal settings
 .claude/settings.local.json

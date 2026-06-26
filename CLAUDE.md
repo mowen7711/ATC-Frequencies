@@ -278,32 +278,39 @@ Switching unit snaps `nearbyRadius` to nearest value in new array.
 - Anonymous UUID install ID (stored in SharedPreferences key `metrics_install_id`)
 - Sends JSON: `{ "events": [{ measurement, install_id, tags, fields, ts }] }`
 
-**Measurements tracked:**
-| measurement | tags | fields |
-|-------------|------|--------|
-| app_event | event (app_open/session_end) | version, locale / duration_ms |
-| airport_view | icao, type | — |
-| feature_use | feature | varies |
-| download_stage | stage | duration_ms, success, bytes |
-| download_complete | — | total_ms |
-| bug_report | — | description, context, app_version |
+**Privacy note (2026-06):** feature-level tracking (frequency copies, SDR
+launches, LiveATC taps, etc.) was removed entirely after beta tester feedback
+about over-monitoring. Geo (country/city/lat/lon from Cloudflare IP lookup)
+is now only attached to `app_open` events — every other measurement,
+including `airport_view`, is location-free. `airport_view` is kept
+deliberately: it's aggregate-only and used to prioritise which airports get
+bespoke features (e.g. viewing spots), not to track individual behaviour.
+See Settings → How We Use Your Data and `docs/privacy-policy.html` for the
+user-facing explanation.
 
-**feature_use values:** `freq_copy`, `sdr_launch`, `add_favourite`, `set_home`, `liveatc_suggested`, `liveatc_tapped_signal`, `liveatc_launched`
+**Measurements tracked:**
+| measurement | tags | fields | geo attached? |
+|-------------|------|--------|----------------|
+| app_event | event (app_open/session_end) | version, locale / duration_ms | yes, app_open only |
+| airport_view | icao, type | — | no |
+| download_stage | stage | duration_ms, success, bytes | no |
+| download_complete | — | total_ms | no |
+| bug_report | — | description, context, app_version | no |
 
 **Cloudflare Worker** (`metrics-relay/index.js`):
 - Accepts POST with JSON payload
 - Validates measurement names, UUID format, body size ≤64 KB
-- Injects Cloudflare IP geolocation (`geo_country`, `geo_city`, `geo_lat`, `geo_lon`, `geo_region`) into every event's tags
+- Injects Cloudflare IP geolocation (`geo_country`, `geo_city`, `geo_lat`, `geo_lon`, `geo_region`) only into `app_event`/`app_open` events — `VALID_MEASUREMENTS` no longer includes `feature_use` or `screen_view` (both removed)
 - Bulk-inserts via `UNNEST` into `atc_metrics` table
 - Returns HTTP 204 always (never blocks the app)
 - Secret `NEON_DATABASE_URL` set via `npx wrangler secret put`
 
 **Grafana dashboards** (import JSON from `grafana/`):
-- `overview.json` — daily actives, installs, feature usage, locale/version split
-- `content.json` — top airports, freq types, SDR/LiveATC engagement, tap-through rates
+- `overview.json` — daily actives, installs, airport views over time, locale/version split
+- `content.json` — top airports, airport type breakdown (feature-usage panels removed)
 - `performance.json` — download stage p50/p95/p99, total time distribution
 - `bugs.json` — bug report table, version split, repeat reporters
-- `map.json` — world map of app launches (24h), country/city tables
+- `map.json` — world map of app launches (24h), country/city tables — still works, draws only from app_open geo
 
 All dashboards use data source UID `cfofy105jfxtsf` (NeonDB PostgreSQL).
 
