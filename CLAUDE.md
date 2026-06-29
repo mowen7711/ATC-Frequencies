@@ -296,11 +296,14 @@ user-facing explanation.
 | download_stage | stage | duration_ms, success, bytes | no |
 | download_complete | — | total_ms | no |
 | bug_report | — | description, context, app_version | no |
+| web_event | event (page_view/cta_click/scroll_depth), target, depth, path | — | yes, page_view only |
+
+`web_event` is sent by `docs/index.html` (the marketing site, not the app) — same Worker, same `atc_metrics` table, distinguished by measurement name. install_id there is a per-browser UUID stored in `localStorage`, not the app's install ID.
 
 **Cloudflare Worker** (`metrics-relay/index.js`):
 - Accepts POST with JSON payload
 - Validates measurement names, UUID format, body size ≤64 KB
-- Injects Cloudflare IP geolocation (`geo_country`, `geo_city`, `geo_lat`, `geo_lon`, `geo_region`) only into `app_event`/`app_open` events — `VALID_MEASUREMENTS` no longer includes `feature_use` or `screen_view` (both removed)
+- Injects Cloudflare IP geolocation (`geo_country`, `geo_city`, `geo_lat`, `geo_lon`, `geo_region`) only into `app_event`/`app_open` and `web_event`/`page_view` events — `VALID_MEASUREMENTS` no longer includes `feature_use` or `screen_view` (both removed)
 - Bulk-inserts via `UNNEST` into `atc_metrics` table
 - Returns HTTP 204 always (never blocks the app)
 - Secret `NEON_DATABASE_URL` set via `npx wrangler secret put`
@@ -310,6 +313,7 @@ user-facing explanation.
 - `content.json` — top airports, airport type breakdown (feature-usage panels removed)
 - `performance.json` — download stage p50/p95/p99, total time distribution
 - `bugs.json` — bug report table, version split, repeat reporters
+- `website.json` — marketing site page views, unique visitors, CTA clicks by button, scroll depth funnel, visitors by country
 - `map.json` — world map of app launches (24h), country/city tables — still works, draws only from app_open geo
 
 All dashboards use data source UID `cfofy105jfxtsf` (NeonDB PostgreSQL).

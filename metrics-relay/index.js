@@ -27,6 +27,7 @@ const VALID_MEASUREMENTS = new Set([
   'download_stage',
   'download_complete',
   'bug_report',
+  'web_event',
 ]);
 
 export default {
@@ -90,14 +91,16 @@ export default {
         continue; // skip invalid, don't reject the whole batch
       }
       const eventTags = (e.tags && typeof e.tags === 'object') ? e.tags : {};
-      // Only attach geo to app_open — every other measurement stays
-      // location-free, including airport views.
-      const isAppOpen = e.measurement === 'app_event' && eventTags.event === 'app_open';
+      // Geo is only attached to app_open and website page_view events —
+      // every other measurement stays location-free, including airport
+      // views and website clicks/scroll depth.
+      const isAppOpen     = e.measurement === 'app_event' && eventTags.event === 'app_open';
+      const isWebPageView = e.measurement === 'web_event' && eventTags.event === 'page_view';
       rows.push({
         ts:          new Date(e.ts),
         measurement: e.measurement,
         install_id:  e.install_id,
-        tags:        { ...eventTags, ...(isAppOpen ? geo : {}) },
+        tags:        { ...eventTags, ...((isAppOpen || isWebPageView) ? geo : {}) },
         fields:      (e.fields && typeof e.fields === 'object') ? e.fields : {},
       });
     }
