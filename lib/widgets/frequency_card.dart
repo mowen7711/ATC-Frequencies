@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../constants.dart';
 import '../models/frequency.dart';
+import '../services/metrics_service.dart';
 import '../services/sdr_service.dart';
 
 class FrequencyCard extends StatelessWidget {
@@ -85,6 +86,7 @@ class FrequencyCard extends StatelessWidget {
   }
 
   void _copyToClipboard(BuildContext context) {
+    MetricsService.instance.trackFreqCopy(frequency.type);
     Clipboard.setData(ClipboardData(text: frequency.formatted));
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -133,6 +135,8 @@ class _SdrButton extends StatelessWidget {
 
   Future<void> _onTap(BuildContext context) async {
     final launched = await SdrService.launchAtFrequency(frequencyMhz);
+    MetricsService.instance.trackSdrLaunch(
+        frequencyMhz, driverInstalled: launched);
     if (!context.mounted) return;
     if (launched) {
       ScaffoldMessenger.of(context).showSnackBar(

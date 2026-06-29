@@ -144,22 +144,21 @@
     <ul>
       <li>A randomly generated install identifier (UUID) — created on first launch, stored only on your device. It is not linked to your name, email, Google account, or any other identity, and does not persist across reinstalls.</li>
       <li>App opens and session duration, together with your app version and device language/region setting (e.g. "en-GB") — used to measure engagement and catch issues tied to specific app versions.</li>
-      <li>Which airports are viewed (e.g. "EGLL was viewed") — never who viewed them. This is purely so we can see which airports are most popular and prioritise building features for them (such as better local data or viewing spot information), not to track individual users' behaviour or movements.</li>
+      <li>General app usage and feature-interaction data — for example, which airports are viewed and which in-app features are used. This is aggregate and anonymous (we see "a feature was used," never tied to a person), and helps us understand what matters most to users so we can prioritise improvements.</li>
       <li>Bug reports you choose to submit, and basic data-download performance (timing and success/failure of the worldwide airport data download).</li>
     </ul>
     <p>
       App-open events are sent to a Cloudflare Worker relay, which automatically adds an
       approximate country and city derived from your IP address (the IP address itself is never
       stored). This location data is attached <strong>only</strong> to the app-open event — it is
-      never linked to which airports you view, which frequencies you use, or anything else you do
+      never linked to which airports you view, which features you use, or anything else you do
       in the app. Events are then written to a private database operated by 4T Technologies.
     </p>
     <p style="margin-top:0.6rem;">
       <strong>What is not collected:</strong> your name, email, precise GPS location, device
-      identifiers (IMEI, advertising ID), which individual frequencies you copy, which features you
-      tap, or any other information that could identify you as an individual or build a profile of
-      your activity. The app does not use advertising SDKs or share data with third parties for
-      marketing purposes.
+      identifiers (IMEI, advertising ID), contacts, photos, or any other information that could
+      identify you as an individual. The app does not use advertising SDKs or share data with third
+      parties for marketing purposes.
     </p>
     <p style="margin-top:0.6rem;">
       Analytics are disabled entirely when running a development build of the app.

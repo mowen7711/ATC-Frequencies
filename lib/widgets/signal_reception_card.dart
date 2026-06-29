@@ -5,6 +5,7 @@ import '../constants.dart';
 import '../models/airport.dart';
 import '../providers/app_provider.dart';
 import '../screens/airport_detail_screen.dart' show kRestrictedCountries;
+import '../services/metrics_service.dart';
 import '../services/terrain_service.dart';
 
 class SignalReceptionCard extends StatefulWidget {
@@ -52,6 +53,11 @@ class _SignalReceptionCardState extends State<SignalReceptionCard> {
 
     if (mounted) {
       setState(() { _result = result; _loading = false; });
+      // Track when we show out-of-range results to measure LiveATC suggestion visibility
+      if (result.quality == SignalQuality.outOfRange ||
+          result.quality == SignalQuality.beyondRange) {
+        MetricsService.instance.trackFeature('liveatc_suggested');
+      }
     }
   }
 
@@ -434,6 +440,7 @@ class _LiveAtcSuggestion extends StatelessWidget {
   }
 
   Future<void> _launch() async {
+    MetricsService.instance.trackFeature('liveatc_tapped_signal');
     final uri = Uri.parse(
         'https://www.liveatc.net/search/?icao=${airport.ident.toUpperCase()}');
     if (await canLaunchUrl(uri)) {
@@ -478,6 +485,7 @@ class _LiveAtcFooter extends StatelessWidget {
   }
 
   Future<void> _launch() async {
+    MetricsService.instance.trackFeature('liveatc_tapped_signal');
     final uri = Uri.parse(
         'https://www.liveatc.net/search/?icao=${airport.ident.toUpperCase()}');
     if (await canLaunchUrl(uri)) {

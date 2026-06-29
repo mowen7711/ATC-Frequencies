@@ -41,10 +41,10 @@
       "version": ""
     }
   ],
-  "title": "ATC Frequencies — Content & Features",
+  "title": "ATC Frequencies \u2014 Content & Features",
   "uid": "atcfreq-content",
   "schemaVersion": 38,
-  "version": 2,
+  "version": 3,
   "refresh": "10m",
   "timezone": "browser",
   "time": {
@@ -59,7 +59,7 @@
       "id": 1,
       "type": "barchart",
       "title": "Top 25 Airports Viewed",
-      "description": "Most-opened airports. Anonymous and aggregate-only — used to prioritise airport-specific features, not to track individual users.",
+      "description": "Most-opened airports. Anonymous and aggregate-only \u2014 used to prioritise airport-specific features, not to track individual users.",
       "gridPos": {
         "x": 0,
         "y": 0,
@@ -100,7 +100,7 @@
     {
       "id": 2,
       "type": "table",
-      "title": "Top 50 Airports — Full Table",
+      "title": "Top 50 Airports \u2014 Full Table",
       "description": "Sortable. Includes airport type so you can spot whether users prefer large hubs or GA fields.",
       "gridPos": {
         "x": 0,
@@ -226,7 +226,7 @@
             "mode": "fixed",
             "fixedColor": "orange"
           },
-          "noValue": "—"
+          "noValue": "\u2014"
         }
       },
       "targets": [
@@ -274,6 +274,409 @@
           "refId": "A",
           "format": "table",
           "rawSql": "SELECT COUNT(DISTINCT tags->>'icao') AS value FROM atc_metrics WHERE measurement = 'airport_view' AND $__timeFilter(ts)"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "piechart",
+      "title": "Frequency Types Copied",
+      "description": "Which frequency types users copy most \u2014 TWR, GND, ATIS, APP, etc.",
+      "gridPos": {
+        "x": 0,
+        "y": 29,
+        "w": 10,
+        "h": 10
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "cfofy105jfxtsf"
+      },
+      "options": {
+        "pieType": "pie",
+        "tooltip": {
+          "mode": "single"
+        },
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "values": [
+            "percent",
+            "value"
+          ]
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT tags->>'freq_type' AS \"Type\", COUNT(*) AS \"Copies\" FROM atc_metrics WHERE measurement = 'feature_use' AND tags->>'feature' = 'freq_copy' AND $__timeFilter(ts) GROUP BY 1 ORDER BY 2 DESC"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "barchart",
+      "title": "Feature Usage Totals",
+      "gridPos": {
+        "x": 10,
+        "y": 29,
+        "w": 14,
+        "h": 10
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "cfofy105jfxtsf"
+      },
+      "options": {
+        "orientation": "horizontal",
+        "tooltip": {
+          "mode": "single"
+        },
+        "legend": {
+          "displayMode": "hidden"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "purple"
+          }
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT tags->>'feature' AS \"Feature\", COUNT(*) AS \"Uses\" FROM atc_metrics WHERE measurement = 'feature_use' AND $__timeFilter(ts) GROUP BY 1 ORDER BY 2 DESC"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "type": "gauge",
+      "title": "SDR Driver Installed %",
+      "description": "Of users who tapped the SDR button, what % had the driver already installed.",
+      "gridPos": {
+        "x": 0,
+        "y": 39,
+        "w": 6,
+        "h": 7
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "cfofy105jfxtsf"
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "minVizValue": 0,
+        "maxVizValue": 100
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 20
+              },
+              {
+                "color": "green",
+                "value": 50
+              }
+            ]
+          }
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT ROUND(100.0 * SUM(CASE WHEN tags->>'driver_installed' = 'true' THEN 1 ELSE 0 END)::numeric / NULLIF(COUNT(*), 0), 1) AS \"value\" FROM atc_metrics WHERE measurement = 'feature_use' AND tags->>'feature' = 'sdr_launch' AND $__timeFilter(ts)"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "type": "stat",
+      "title": "Most Copied Freq Type",
+      "gridPos": {
+        "x": 12,
+        "y": 39,
+        "w": 6,
+        "h": 7
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "cfofy105jfxtsf"
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "background",
+        "textMode": "value_and_name"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "yellow"
+          },
+          "noValue": "\u2014"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT tags->>'freq_type' AS \"metric\", COUNT(*) AS value FROM atc_metrics WHERE measurement = 'feature_use' AND tags->>'feature' = 'freq_copy' AND $__timeFilter(ts) GROUP BY 1 ORDER BY 2 DESC LIMIT 1"
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "type": "stat",
+      "title": "LiveATC Suggestions Shown",
+      "description": "Times the out-of-range signal card showed the LiveATC suggestion banner.",
+      "gridPos": {
+        "x": 0,
+        "y": 46,
+        "w": 6,
+        "h": 4
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "cfofy105jfxtsf"
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "background",
+        "graphMode": "none"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "orange"
+          },
+          "unit": "short",
+          "noValue": "0"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT COUNT(*) AS value FROM atc_metrics WHERE measurement = 'feature_use' AND tags->>'feature' = 'liveatc_suggested' AND $__timeFilter(ts)"
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "type": "stat",
+      "title": "LiveATC Taps (Signal Card)",
+      "description": "Times users tapped the LiveATC banner from the out-of-range signal card.",
+      "gridPos": {
+        "x": 6,
+        "y": 46,
+        "w": 6,
+        "h": 4
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "cfofy105jfxtsf"
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "background",
+        "graphMode": "none"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "green"
+          },
+          "unit": "short",
+          "noValue": "0"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT COUNT(*) AS value FROM atc_metrics WHERE measurement = 'feature_use' AND tags->>'feature' = 'liveatc_tapped_signal' AND $__timeFilter(ts)"
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "type": "stat",
+      "title": "LiveATC Taps (Freq Header)",
+      "description": "Times users tapped the Listen on LiveATC.net button in the frequencies header.",
+      "gridPos": {
+        "x": 12,
+        "y": 46,
+        "w": 6,
+        "h": 4
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "cfofy105jfxtsf"
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "background",
+        "graphMode": "none"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          },
+          "unit": "short",
+          "noValue": "0"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT COUNT(*) AS value FROM atc_metrics WHERE measurement = 'feature_use' AND tags->>'feature' = 'liveatc_launched' AND $__timeFilter(ts)"
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "type": "stat",
+      "title": "LiveATC Tap-Through Rate",
+      "description": "% of suggestion views that resulted in a tap.",
+      "gridPos": {
+        "x": 18,
+        "y": 46,
+        "w": 6,
+        "h": 4
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "cfofy105jfxtsf"
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "background",
+        "graphMode": "none"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 1,
+          "noValue": "\u2014",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 10
+              },
+              {
+                "color": "green",
+                "value": 25
+              }
+            ]
+          }
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT ROUND(100.0 * SUM(CASE WHEN tags->>'feature' = 'liveatc_tapped_signal' THEN 1 ELSE 0 END)::numeric / NULLIF(SUM(CASE WHEN tags->>'feature' = 'liveatc_suggested' THEN 1 ELSE 0 END), 0), 1) AS value FROM atc_metrics WHERE measurement = 'feature_use' AND tags->>'feature' IN ('liveatc_suggested', 'liveatc_tapped_signal') AND $__timeFilter(ts)"
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "type": "timeseries",
+      "title": "LiveATC Engagement Over Time",
+      "description": "Suggestions shown vs taps \u2014 shows how often out-of-range users follow through to LiveATC.",
+      "gridPos": {
+        "x": 0,
+        "y": 50,
+        "w": 24,
+        "h": 8
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "cfofy105jfxtsf"
+      },
+      "options": {
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 10
+          }
+        }
+      },
+      "targets": [
+        {
+          "refId": "suggested",
+          "format": "time_series",
+          "rawSql": "SELECT $__timeGroupAlias(ts,$__interval), COUNT(*) AS \"Suggestions Shown\" FROM atc_metrics WHERE measurement = 'feature_use' AND tags->>'feature' = 'liveatc_suggested' AND $__timeFilter(ts) GROUP BY 1 ORDER BY 1"
+        },
+        {
+          "refId": "tapped",
+          "format": "time_series",
+          "rawSql": "SELECT $__timeGroupAlias(ts,$__interval), COUNT(*) AS \"Tapped (Signal Card)\" FROM atc_metrics WHERE measurement = 'feature_use' AND tags->>'feature' = 'liveatc_tapped_signal' AND $__timeFilter(ts) GROUP BY 1 ORDER BY 1"
+        },
+        {
+          "refId": "header",
+          "format": "time_series",
+          "rawSql": "SELECT $__timeGroupAlias(ts,$__interval), COUNT(*) AS \"Tapped (Freq Header)\" FROM atc_metrics WHERE measurement = 'feature_use' AND tags->>'feature' = 'liveatc_launched' AND $__timeFilter(ts) GROUP BY 1 ORDER BY 1"
         }
       ]
     }

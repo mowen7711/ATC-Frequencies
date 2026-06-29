@@ -581,7 +581,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _SectionHeader('How We Use Your Data'),
           const _InfoTile(
             icon: Icons.shield_outlined,
-            text: 'We deliberately keep this to the minimum useful for keeping the app running well. Nothing below is tied to your name, account, or device — only to a random anonymous ID that resets if you reinstall.',
+            text: 'Kept to the minimum useful for running the app well. Nothing is tied to your name or device — only a random ID that resets if you reinstall.',
           ),
           _Card(
             child: Column(
@@ -590,50 +590,44 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 const _DataRow(
                   icon: Icons.fingerprint_rounded,
                   label: 'Anonymous install ID',
-                  detail: 'A random UUID generated on first launch. Cannot identify you — it has no link to your name, account, or device, and isn\'t shared between installs.',
+                  detail: 'A random ID, not linked to you in any way.',
                 ),
                 const Divider(height: 1),
                 const _DataRow(
-                  icon: Icons.flight_rounded,
-                  label: 'Which airports are viewed',
-                  detail: 'We log "EGLL was viewed" — never who viewed it. This is purely so we can see which airports are most popular and prioritise building features for them (e.g. better local data, viewing spots) — not to track your activity or movements.',
-                ),
-                const Divider(height: 1),
-                const _DataRow(
-                  icon: Icons.timer_outlined,
-                  label: 'Session length & app opens, with app version and language',
-                  detail: 'How long each session lasts and how often the app is opened, plus your app version and device language. Used to measure engagement and catch issues on older versions — not tied to anything else you do in the app.',
+                  icon: Icons.bar_chart_rounded,
+                  label: 'App usage & interaction data',
+                  detail: 'General usage, like app opens, session length, and which features and airports are used — so we know what to improve.',
                 ),
                 const Divider(height: 1),
                 const _DataRow(
                   icon: Icons.location_city_rounded,
-                  label: 'Approximate country/city (from IP), on app open only',
-                  detail: 'Cloudflare detects the rough location your internet connection is in, attached only to the app-open event above — never to which airports you view, frequencies you use, or anything else you do. Your IP address itself is never stored.',
+                  label: 'Approximate location, on app open only',
+                  detail: 'City-level, from your IP (never stored). Not linked to anything else you do.',
                 ),
                 const Divider(height: 1),
                 const _DataRow(
                   icon: Icons.bug_report_outlined,
-                  label: 'Bug reports & crash details',
-                  detail: 'Only when you choose to submit one — the description you type, plus your app version. Nothing is sent automatically.',
+                  label: 'Bug reports',
+                  detail: 'Only what you type, only when you choose to submit one.',
                 ),
                 const Divider(height: 1),
                 const _DataRow(
                   icon: Icons.speed_rounded,
-                  label: 'Data download performance',
-                  detail: 'How long the worldwide airport data takes to download, and whether it succeeded. Used to spot slow connections or failures — no personal data involved.',
+                  label: 'Download performance',
+                  detail: 'How long data downloads take and whether they succeed.',
                 ),
                 const Divider(height: 1),
                 const _DataRow(
                   icon: Icons.verified_user_outlined,
-                  label: 'What we never collect',
-                  detail: 'Your name, email, phone number, precise GPS location, contacts, photos, which individual frequencies you copy, which features you tap, or any identifiable information.',
+                  label: 'Never collected',
+                  detail: 'Your name, email, GPS location, contacts, or photos.',
                 ),
               ],
             ),
           ),
           const _InfoTile(
             icon: Icons.storage_rounded,
-            text: 'Data is stored securely in the EU (NeonDB) and processed via Cloudflare. It is never sold or shared with third parties.',
+            text: 'Stored securely in the EU, never sold or shared with third parties.',
           ),
 
           // ── Found a problem ────────────────────────────────────────────

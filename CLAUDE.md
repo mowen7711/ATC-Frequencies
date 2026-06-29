@@ -279,20 +279,33 @@ Switching unit snaps `nearbyRadius` to nearest value in new array.
 - Sends JSON: `{ "events": [{ measurement, install_id, tags, fields, ts }] }`
 
 **Privacy note (2026-06):** feature-level tracking (frequency copies, SDR
-launches, LiveATC taps, etc.) was removed entirely after beta tester feedback
-about over-monitoring. Geo (country/city/lat/lon from Cloudflare IP lookup)
-is now only attached to `app_open` events — every other measurement,
-including `airport_view`, is location-free. `airport_view` is kept
-deliberately: it's aggregate-only and used to prioritise which airports get
-bespoke features (e.g. viewing spots), not to track individual behaviour.
+launches, LiveATC taps) was removed after beta tester feedback about
+over-monitoring, then **reinstated** shortly after at the owner's request —
+this kind of feature-interaction analytics is standard industry practice
+(most apps track it), and the in-app/privacy-policy wording was rewritten to
+describe it honestly using general categories ("app usage & interaction
+data") rather than itemising every tracked button. The geo restriction
+introduced during the removal was kept: geo (country/city/lat/lon from
+Cloudflare IP lookup) is attached **only** to `app_open` (and `web_event`
+`page_view`) events — `feature_use` and `airport_view` remain location-free.
+`screen_view` stays removed (it was dead code, never wired to any screen).
 See Settings → How We Use Your Data and `docs/privacy-policy.html` for the
-user-facing explanation.
+user-facing explanation — keep both in sync if `feature_use` values change.
+
+**IMPORTANT:** if you add new `feature_use` values or new measurements,
+Play Console's **Data Safety** form (a separate questionnaire in the Play
+Console web UI, not a file in this repo) must also be kept accurate — it
+asks about data *categories* collected (e.g. "App interactions", "App info
+and performance") and purposes. Selecting "no analytics collected" or
+omitting a category that's actually collected is a Play policy violation
+independent of what the in-app text says.
 
 **Measurements tracked:**
 | measurement | tags | fields | geo attached? |
 |-------------|------|--------|----------------|
 | app_event | event (app_open/session_end) | version, locale / duration_ms | yes, app_open only |
 | airport_view | icao, type | — | no |
+| feature_use | feature (freq_copy, sdr_launch, liveatc_suggested, liveatc_tapped_signal), freq_type, driver_installed | freq_mhz | no |
 | download_stage | stage | duration_ms, success, bytes | no |
 | download_complete | — | total_ms | no |
 | bug_report | — | description, context, app_version | no |
@@ -303,18 +316,18 @@ user-facing explanation.
 **Cloudflare Worker** (`metrics-relay/index.js`):
 - Accepts POST with JSON payload
 - Validates measurement names, UUID format, body size ≤64 KB
-- Injects Cloudflare IP geolocation (`geo_country`, `geo_city`, `geo_lat`, `geo_lon`, `geo_region`) only into `app_event`/`app_open` and `web_event`/`page_view` events — `VALID_MEASUREMENTS` no longer includes `feature_use` or `screen_view` (both removed)
+- Injects Cloudflare IP geolocation (`geo_country`, `geo_city`, `geo_lat`, `geo_lon`, `geo_region`) only into `app_event`/`app_open` and `web_event`/`page_view` events — `feature_use` (and everything else) stays location-free
 - Bulk-inserts via `UNNEST` into `atc_metrics` table
 - Returns HTTP 204 always (never blocks the app)
 - Secret `NEON_DATABASE_URL` set via `npx wrangler secret put`
 
 **Grafana dashboards** (import JSON from `grafana/`):
-- `overview.json` — daily actives, installs, airport views over time, locale/version split
-- `content.json` — top airports, airport type breakdown (feature-usage panels removed)
+- `overview.json` — daily actives, installs, feature usage over time, locale/version split
+- `content.json` — top airports, airport type breakdown, frequency types copied, SDR/LiveATC engagement, tap-through rates
 - `performance.json` — download stage p50/p95/p99, total time distribution
 - `bugs.json` — bug report table, version split, repeat reporters
 - `website.json` — marketing site page views, unique visitors, CTA clicks by button, scroll depth funnel, visitors by country
-- `map.json` — world map of app launches (24h), country/city tables — still works, draws only from app_open geo
+- `map.json` — world map of app launches (24h), country/city tables — draws only from app_open geo
 
 All dashboards use data source UID `cfofy105jfxtsf` (NeonDB PostgreSQL).
 

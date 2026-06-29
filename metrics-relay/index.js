@@ -24,6 +24,7 @@ const MAX_BODY_BYTES = 65536; // 64 KB ceiling
 const VALID_MEASUREMENTS = new Set([
   'app_event',
   'airport_view',
+  'feature_use',
   'download_stage',
   'download_complete',
   'bug_report',
