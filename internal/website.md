@@ -202,9 +202,14 @@ Reuses the app's existing pipeline rather than adding a third-party tracker — 
 - `page_view` — fired once on load, tagged with `path`
 - `cta_click` — fired on click of any `.nav-cta`, `.play-link`, `.btn-primary`, `.btn-ghost` link, tagged with a `target` name (`nav_get_app`, `cta_play_store`, `hero_play_store`, `hero_explore_features`)
 - `scroll_depth` — fired once per milestone (25/50/75/100%) per page load
+- `page_view` also carries `referrer_source` (e.g. `google.com`, `reddit.com`, or `direct`), and `referrer_medium`/`referrer_campaign` if the page URL has `?utm_source=...&utm_medium=...&utm_campaign=...`. UTM params win over `document.referrer` when both are present; same-origin referrers are normalised to `direct`. Added 2026-06-29 — no backend changes needed, since the Worker already passes through arbitrary tag keys.
 - Sent via `fetch(..., {keepalive: true})` so it survives page unload, to `https://atc-freq-metrics.mark-78f.workers.dev`
 
-**Grafana:** `grafana/website.json` — page views, unique visitors, CTA clicks by button, scroll depth funnel, visitors by country. Import via Grafana → Dashboards → New → Import → Upload JSON, same NeonDB datasource UID (`cfofy105jfxtsf`) as the existing app dashboards.
+**Grafana:** `/Users/mark/Projects/atc_freq/grafana/website.json` — 9 panels: Page Views, Unique Visitors, CTA Clicks, and Reached Bottom of Page (100% scroll) as stat tiles, plus Page Views Over Time, CTA Clicks by Button, Scroll Depth Funnel, Visitors by Country, and Traffic Sources (referrer/UTM breakdown) as charts. All query `atc_metrics` filtered to `measurement = 'web_event'`.
+
+Import via Grafana → Dashboards → New → Import → Upload JSON, mapping the `DS_NEONDB` prompt to the existing NeonDB Postgres data source. Panels are hardcoded to datasource UID `cfofy105jfxtsf`, the same UID used by the existing app dashboards in this Grafana instance — if importing elsewhere, Grafana's import screen lets you re-map it.
+
+**Status: imported and confirmed working** — page views, CTA clicks, and scroll depth are populating live as of 2026-06-29.
 
 **Privacy policy:** Section 6 of `docs/privacy-policy.html` discloses this in plain, non-itemized language (deliberately condensed — an earlier draft itemized every tracked event and button name, which read as alarming for what's a small amount of anonymous, aggregate data).
 

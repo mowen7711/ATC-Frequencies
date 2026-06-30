@@ -1,7 +1,7 @@
 # ATC Frequencies — Project Context
 
 ## What this app does
-Flutter Android app (v1.0.0) listing worldwide airport ATC frequencies. Users can search ~70,000 airports by name/ICAO/IATA/city, star favourites, pin a home airport, view nearby airports via GPS, see a map, calculate VHF signal reception, and link out to LiveATC.net for live audio. A toggleable foreground service shows a persistent notification listing the nearest airports.
+Flutter Android app (v1.0.1) listing worldwide airport ATC frequencies. **Live on Google Play** (production, £0.99): https://play.google.com/store/apps/details?id=com.atcfreq.atc_freq Users can search ~70,000 airports by name/ICAO/IATA/city, star favourites, pin a home airport, view nearby airports via GPS, see a map, calculate VHF signal reception, and link out to LiveATC.net for live audio. A toggleable foreground service shows a persistent notification listing the nearest airports.
 
 ## Project location
 `/Users/mark/Projects/atc_freq`
@@ -123,8 +123,23 @@ assets/
   data/                 — (empty — data downloaded at runtime)
 
 docs/
-  privacy-policy.html   — Hosted on GitHub Pages
+  index.html            — Marketing website (atc-frequencies.app), deployed to root@100.103.65.20:/var/www/atcfrequencies/ via rsync
+  privacy-policy.html   — Privacy policy (linked from Play Store)
   feature-graphic.svg   — Play Store feature graphic 1024×500px
+
+marketing/
+  outreach-log.md       — Tracks every drafted/posted piece of content (dedup for agent)
+  *-draft.md            — Individual channel drafts (frontmatter: channel, type, status, date)
+
+marketing-ui/
+  server.js             — Express API server for the marketing dashboard
+  public/index.html     — Dashboard UI (view/manage drafts, mark posted, delete)
+  nginx.conf            — nginx site config (Tailscale-only, port 8090)
+  deploy.sh             — Full deploy script (Mac → server via rsync+ssh)
+  — Deployed at http://100.103.65.20:8090 (Tailscale peers only)
+  — App: /opt/atc-marketing-ui/ on 4t-tech-ubnt-01, systemd service: atc-marketing-ui
+  — To redeploy: bash marketing-ui/deploy.sh
+  — Code-only update: rsync marketing-ui/ then systemctl restart atc-marketing-ui
 ```
 
 ---
@@ -309,9 +324,11 @@ independent of what the in-app text says.
 | download_stage | stage | duration_ms, success, bytes | no |
 | download_complete | — | total_ms | no |
 | bug_report | — | description, context, app_version | no |
-| web_event | event (page_view/cta_click/scroll_depth), target, depth, path | — | yes, page_view only |
+| web_event | event (page_view/cta_click/scroll_depth), target, depth, path, referrer_source, referrer_medium, referrer_campaign | — | yes, page_view only |
 
 `web_event` is sent by `docs/index.html` (the marketing site, not the app) — same Worker, same `atc_metrics` table, distinguished by measurement name. install_id there is a per-browser UUID stored in `localStorage`, not the app's install ID.
+
+**Traffic source attribution (2026-06):** `page_view` tags `referrer_source` (e.g. `google.com`, `reddit.com`, `direct`) and optionally `referrer_medium`/`referrer_campaign` if the URL has `?utm_source=...`. UTM params take priority over `document.referrer` when both are present. Same-origin referrers (e.g. internal navigation) are normalised to `direct`. No backend change was needed — the Worker passes through arbitrary tag keys already.
 
 **Cloudflare Worker** (`metrics-relay/index.js`):
 - Accepts POST with JSON payload

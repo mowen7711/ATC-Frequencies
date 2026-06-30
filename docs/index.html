@@ -867,7 +867,27 @@
       } catch (_) {}
     }
 
-    send('page_view', {path: location.pathname});
+    function classifySource(){
+      const params = new URLSearchParams(location.search);
+      const utmSource = params.get('utm_source');
+      if (utmSource) {
+        return {
+          referrer_source: utmSource,
+          ...(params.get('utm_medium')   ? {referrer_medium:   params.get('utm_medium')}   : {}),
+          ...(params.get('utm_campaign') ? {referrer_campaign: params.get('utm_campaign')} : {}),
+        };
+      }
+      if (!document.referrer) return {referrer_source: 'direct'};
+      try {
+        const refHost = new URL(document.referrer).hostname.replace(/^www\./, '');
+        if (refHost === location.hostname) return {referrer_source: 'direct'};
+        return {referrer_source: refHost};
+      } catch (_) {
+        return {referrer_source: 'direct'};
+      }
+    }
+
+    send('page_view', {path: location.pathname, ...classifySource()});
 
     document.querySelectorAll('a').forEach(a => {
       let target = null;

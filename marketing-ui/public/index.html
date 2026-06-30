@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ATC Frequencies — Marketing Console</title>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<style>
+  :root {
+    --bg: #0a0e1a;
+    --surface: #111827;
+    --surface2: #1a2236;
+    --border: #1e2d45;
+    --amber: #f5a623;
+    --amber-dim: #7a5110;
+    --cyan: #00d4ff;
+    --cyan-dim: #004d5e;
+    --green: #39d98a;
+    --red: #ff4d6a;
+    --text: #c8d6e8;
+    --text-dim: #5a7a9a;
+    --text-bright: #e8f0f8;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'SF Mono', 'Fira Code', monospace; font-size: 13px; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+
+  /* Header */
+  header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 10px 20px; display: flex; align-items: center; gap: 16px; flex-shrink: 0; }
+  .logo { color: var(--amber); font-size: 11px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase; }
+  .logo span { color: var(--cyan); }
+  .header-status { margin-left: auto; display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--text-dim); }
+  .status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); box-shadow: 0 0 6px var(--green); animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+  .beta-badge { background: var(--amber-dim); color: var(--amber); border: 1px solid var(--amber); padding: 2px 8px; border-radius: 3px; font-size: 10px; letter-spacing: 1px; }
+
+  /* Layout */
+  .layout { display: flex; flex: 1; overflow: hidden; }
+
+  /* Sidebar */
+  .sidebar { width: 280px; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; flex-shrink: 0; }
+  .sidebar-header { padding: 12px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+  .sidebar-title { font-size: 10px; letter-spacing: 2px; color: var(--text-dim); text-transform: uppercase; }
+  .draft-count { background: var(--cyan-dim); color: var(--cyan); padding: 2px 6px; border-radius: 3px; font-size: 10px; }
+  .draft-list { flex: 1; overflow-y: auto; }
+  .draft-list::-webkit-scrollbar { width: 4px; }
+  .draft-list::-webkit-scrollbar-track { background: transparent; }
+  .draft-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+  .draft-item { padding: 12px 16px; border-bottom: 1px solid var(--border); cursor: pointer; transition: background 0.15s; position: relative; }
+  .draft-item:hover { background: var(--surface2); }
+  .draft-item.active { background: var(--surface2); border-left: 2px solid var(--cyan); padding-left: 14px; }
+  .draft-channel { font-size: 12px; color: var(--text-bright); font-weight: 600; margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .draft-meta { font-size: 10px; color: var(--text-dim); display: flex; gap: 8px; }
+  .status-pill { padding: 1px 6px; border-radius: 2px; font-size: 9px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; }
+  .status-drafted { background: var(--amber-dim); color: var(--amber); }
+  .status-posted { background: #0d2e1a; color: var(--green); }
+  .tab-bar { display: flex; border-top: 1px solid var(--border); }
+  .tab { flex: 1; padding: 10px; text-align: center; font-size: 10px; letter-spacing: 1px; text-transform: uppercase; color: var(--text-dim); cursor: pointer; transition: all 0.15s; border: none; background: none; }
+  .tab.active { color: var(--cyan); border-top: 1px solid var(--cyan); margin-top: -1px; }
+  .tab:hover:not(.active) { color: var(--text); }
+
+  /* Main panel */
+  .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  .main-header { padding: 12px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; flex-shrink: 0; background: var(--surface); }
+  .main-title { font-size: 12px; color: var(--text-bright); flex: 1; }
+  .btn { padding: 6px 14px; border-radius: 4px; border: none; font-family: inherit; font-size: 11px; font-weight: 700; letter-spacing: 1px; cursor: pointer; transition: all 0.15s; text-transform: uppercase; }
+  .btn-primary { background: var(--amber); color: #000; }
+  .btn-primary:hover { background: #ffbe50; }
+  .btn-danger { background: transparent; color: var(--red); border: 1px solid var(--red); }
+  .btn-danger:hover { background: var(--red); color: #fff; }
+  .btn-success { background: transparent; color: var(--green); border: 1px solid var(--green); }
+  .btn-success:hover { background: var(--green); color: #000; }
+  .btn-ghost { background: transparent; color: var(--text-dim); border: 1px solid var(--border); }
+  .btn-ghost:hover { color: var(--text); border-color: var(--text-dim); }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .content-area { flex: 1; overflow-y: auto; padding: 24px; }
+  .content-area::-webkit-scrollbar { width: 4px; }
+  .content-area::-webkit-scrollbar-thumb { background: var(--border); }
+
+  /* Empty state */
+  .empty { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; gap: 16px; color: var(--text-dim); }
+  .empty-icon { font-size: 48px; opacity: 0.3; }
+  .empty-label { font-size: 12px; letter-spacing: 1px; }
+
+  /* Markdown render */
+  .md-render { max-width: 720px; line-height: 1.7; }
+  .md-render h1 { color: var(--amber); font-size: 16px; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+  .md-render h2 { color: var(--cyan); font-size: 13px; margin: 20px 0 8px; letter-spacing: 1px; }
+  .md-render h3 { color: var(--text-bright); font-size: 12px; margin: 16px 0 6px; }
+  .md-render p { margin-bottom: 12px; }
+  .md-render code { background: var(--surface2); padding: 2px 6px; border-radius: 3px; color: var(--cyan); font-size: 12px; }
+  .md-render pre { background: var(--surface2); padding: 14px; border-radius: 6px; overflow-x: auto; margin: 12px 0; border: 1px solid var(--border); }
+  .md-render pre code { background: none; padding: 0; }
+  .md-render strong { color: var(--text-bright); }
+  .md-render a { color: var(--cyan); }
+  .md-render hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
+  .md-render table { width: 100%; border-collapse: collapse; margin: 12px 0; }
+  .md-render th { background: var(--surface2); color: var(--text-dim); padding: 8px 12px; text-align: left; font-size: 10px; letter-spacing: 1px; text-transform: uppercase; border: 1px solid var(--border); }
+  .md-render td { padding: 8px 12px; border: 1px solid var(--border); }
+  .md-render blockquote { border-left: 3px solid var(--amber); padding-left: 14px; color: var(--text-dim); margin: 12px 0; }
+
+  /* Frontmatter strip */
+  .frontmatter { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 12px 16px; margin-bottom: 20px; display: flex; gap: 16px; flex-wrap: wrap; }
+  .fm-item { display: flex; flex-direction: column; gap: 2px; }
+  .fm-key { font-size: 9px; letter-spacing: 1px; color: var(--text-dim); text-transform: uppercase; }
+  .fm-val { font-size: 12px; color: var(--text-bright); }
+
+  /* Raw content view */
+  .raw-content { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 20px; font-size: 13px; line-height: 1.6; white-space: pre-wrap; word-break: break-word; color: var(--text); }
+
+  /* Generate modal */
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 100; backdrop-filter: blur(4px); }
+  .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; width: 520px; max-width: 95vw; max-height: 90vh; overflow-y: auto; }
+  .modal-header { padding: 20px 24px 16px; border-bottom: 1px solid var(--border); }
+  .modal-title { color: var(--amber); font-size: 14px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; }
+  .modal-body { padding: 20px 24px; display: flex; flex-direction: column; gap: 16px; }
+  .modal-footer { padding: 16px 24px; border-top: 1px solid var(--border); display: flex; gap: 10px; justify-content: flex-end; }
+  label { font-size: 10px; letter-spacing: 1px; color: var(--text-dim); text-transform: uppercase; display: block; margin-bottom: 6px; }
+  select, textarea { width: 100%; background: var(--surface2); border: 1px solid var(--border); color: var(--text-bright); font-family: inherit; font-size: 12px; padding: 10px 12px; border-radius: 4px; outline: none; transition: border-color 0.15s; }
+  select:focus, textarea:focus { border-color: var(--cyan); }
+  textarea { min-height: 80px; resize: vertical; }
+  select option { background: var(--surface2); }
+
+  /* Spinner */
+  .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid var(--amber-dim); border-top-color: var(--amber); border-radius: 50%; animation: spin 0.8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Toast */
+  .toast { position: fixed; bottom: 24px; right: 24px; background: var(--surface); border: 1px solid var(--border); color: var(--text-bright); padding: 12px 20px; border-radius: 6px; font-size: 12px; z-index: 200; transform: translateY(20px); opacity: 0; transition: all 0.25s; pointer-events: none; }
+  .toast.show { transform: translateY(0); opacity: 1; }
+  .toast.success { border-color: var(--green); color: var(--green); }
+  .toast.error { border-color: var(--red); color: var(--red); }
+
+  /* Log view */
+  .log-view { max-width: 900px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">ATC Frequencies <span>//</span> Marketing Console</div>
+  <div class="beta-badge" style="background:#0d2e1a;color:var(--green);border-color:var(--green)">LIVE</div>
+  <div class="header-status">
+    <div class="status-dot"></div>
+    <span id="draft-count-header">Loading…</span>
+  </div>
+</header>
+
+<div class="layout">
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <span class="sidebar-title">Drafts</span>
+      <span class="draft-count" id="sidebar-count">0</span>
+    </div>
+    <div class="draft-list" id="draft-list"></div>
+    <div class="tab-bar">
+      <button class="tab active" id="tab-drafts" onclick="switchTab('drafts')">Drafts</button>
+      <button class="tab" id="tab-log" onclick="switchTab('log')">Log</button>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="main-header" id="main-header" style="display:none">
+      <div class="main-title" id="main-title"></div>
+      <button class="btn btn-ghost" id="btn-raw" onclick="toggleRaw()">Raw</button>
+      <button class="btn btn-success" id="btn-mark-posted" onclick="markPosted()">Mark Posted</button>
+      <button class="btn btn-danger" id="btn-delete" onclick="deleteDraft()">Delete</button>
+    </div>
+    <div class="content-area" id="content-area">
+      <div class="empty">
+        <div class="empty-icon">📡</div>
+        <div class="empty-label">Select a draft from the sidebar</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<div class="toast" id="toast"></div>
+
+<script>
+let drafts = [];
+let selectedDraft = null;
+let currentTab = 'drafts';
+let showRaw = false;
+
+async function init() {
+  drafts = await fetch('/api/drafts').then(r => r.json());
+  renderSidebar();
+  updateHeaderCount();
+}
+
+function updateHeaderCount() {
+  const unposted = drafts.filter(d => d.status !== 'Posted').length;
+  document.getElementById('draft-count-header').textContent = `${unposted} unposted draft${unposted !== 1 ? 's' : ''}`;
+  document.getElementById('sidebar-count').textContent = drafts.length;
+}
+
+function renderSidebar() {
+  const list = document.getElementById('draft-list');
+  if (drafts.length === 0) {
+    list.innerHTML = '<div style="padding:24px 16px;color:var(--text-dim);font-size:11px;text-align:center">No drafts yet.<br>Hit Generate to create one.</div>';
+    return;
+  }
+  list.innerHTML = drafts.map(d => `
+    <div class="draft-item ${selectedDraft?.filename === d.filename ? 'active' : ''}" onclick="selectDraft('${d.filename}')">
+      <div class="draft-channel">${d.channel || d.filename.replace('-draft.md','').replace(/-/g,' ')}</div>
+      <div class="draft-meta">
+        <span class="status-pill ${d.status === 'Posted' ? 'status-posted' : 'status-drafted'}">${d.status || 'Drafted'}</span>
+        <span>${d.type || ''}</span>
+        <span style="margin-left:auto">${d.date || ''}</span>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function selectDraft(filename) {
+  const d = drafts.find(x => x.filename === filename);
+  if (!d) return;
+  selectedDraft = d;
+  showRaw = false;
+  document.getElementById('btn-raw').textContent = 'Raw';
+  renderSidebar();
+  renderDraft(d);
+  document.getElementById('main-header').style.display = 'flex';
+  document.getElementById('main-title').textContent = d.channel || filename;
+  const markBtn = document.getElementById('btn-mark-posted');
+  markBtn.style.display = d.status === 'Posted' ? 'none' : '';
+}
+
+function bodyOnly(content) {
+  return content.replace(/^---[\s\S]*?---\n?/, '').trim();
+}
+
+function renderDraft(d) {
+  const area = document.getElementById('content-area');
+  if (showRaw) {
+    area.innerHTML = `<div class="raw-content">${escHtml(d.content)}</div>`;
+    return;
+  }
+  const fm = `
+    <div class="frontmatter">
+      ${d.channel ? `<div class="fm-item"><div class="fm-key">Channel</div><div class="fm-val">${escHtml(d.channel)}</div></div>` : ''}
+      ${d.type ? `<div class="fm-item"><div class="fm-key">Type</div><div class="fm-val">${escHtml(d.type)}</div></div>` : ''}
+      ${d.status ? `<div class="fm-item"><div class="fm-key">Status</div><div class="fm-val"><span class="status-pill ${d.status === 'Posted' ? 'status-posted' : 'status-drafted'}">${escHtml(d.status)}</span></div></div>` : ''}
+      ${d.date ? `<div class="fm-item"><div class="fm-key">Date</div><div class="fm-val">${escHtml(d.date)}</div></div>` : ''}
+    </div>`;
+  area.innerHTML = fm + `<div class="md-render">${marked.parse(bodyOnly(d.content))}</div>`;
+}
+
+function toggleRaw() {
+  showRaw = !showRaw;
+  document.getElementById('btn-raw').textContent = showRaw ? 'Rendered' : 'Raw';
+  if (selectedDraft) renderDraft(selectedDraft);
+}
+
+async function markPosted() {
+  if (!selectedDraft) return;
+  await fetch(`/api/drafts/${selectedDraft.filename}/mark-posted`, { method: 'POST' });
+  await init();
+  if (selectedDraft) selectDraft(selectedDraft.filename);
+  toast('Marked as posted', 'success');
+}
+
+async function deleteDraft() {
+  if (!selectedDraft) return;
+  if (!confirm(`Delete ${selectedDraft.filename}?`)) return;
+  await fetch(`/api/drafts/${selectedDraft.filename}`, { method: 'DELETE' });
+  selectedDraft = null;
+  document.getElementById('main-header').style.display = 'none';
+  document.getElementById('content-area').innerHTML = '<div class="empty"><div class="empty-icon">📡</div><div class="empty-label">Select a draft or generate new content</div></div>';
+  await init();
+  toast('Draft deleted');
+}
+
+async function switchTab(tab) {
+  currentTab = tab;
+  document.getElementById('tab-drafts').classList.toggle('active', tab === 'drafts');
+  document.getElementById('tab-log').classList.toggle('active', tab === 'log');
+  if (tab === 'drafts') {
+    document.getElementById('draft-list').style.display = '';
+    renderSidebar();
+  } else {
+    document.getElementById('draft-list').style.display = 'none';
+    const { content } = await fetch('/api/log').then(r => r.json());
+    document.getElementById('draft-list').style.display = '';
+    document.getElementById('draft-list').innerHTML = `<div style="padding:16px"><div class="md-render log-view">${marked.parse(content)}</div></div>`;
+    document.getElementById('main-header').style.display = 'none';
+    document.getElementById('content-area').innerHTML = '<div class="empty"><div class="empty-icon">📋</div><div class="empty-label">Outreach log shown in sidebar</div></div>';
+  }
+}
+
+let currentChannelId = null;
+let genStep = 1;
+
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function toast(msg, type = '') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = `toast ${type} show`;
+  setTimeout(() => { el.classList.remove('show'); }, 3000);
+}
+
+init();
+</script>
+</body>
+</html>
